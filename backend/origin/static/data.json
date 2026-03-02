@@ -1,0 +1,10 @@
+{
+  "source": "OriginServer",
+  "description": "Sample JSON data served from the Origin",
+  "version": "1.0.0",
+  "items": [
+    { "id": 1, "name": "Widget A", "price": 9.99 },
+    { "id": 2, "name": "Widget B", "price": 14.50 },
+    { "id": 3, "name": "Widget C", "price": 23.00 }
+  ]
+}
