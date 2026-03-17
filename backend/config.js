@@ -21,6 +21,7 @@ const config = {
   // ── Edge Servers ───────────────────────────────────────────
   //    Each edge runs on its own port.  The CDN gateway uses
   //    this list for round-robin routing.
+
   edges: [
     { id: 'Edge-1', host: 'localhost', port: 3001 },
     { id: 'Edge-2', host: 'localhost', port: 3002 },

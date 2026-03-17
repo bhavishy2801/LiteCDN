@@ -28,7 +28,10 @@ const axios   = require('axios');
 const config  = require('../config');
 
 // ── Configuration ────────────────────────────────────────────
-const PORT    = process.env.PORT    || 3001;
+// Default to the first edge port from shared config so the
+// file stays in sync with `backend/config.js` when no
+// `PORT` env var is provided.
+const PORT    = process.env.PORT    || config.edges[0].port;
 const EDGE_ID = process.env.EDGE_ID || `Edge-${PORT}`;
 
 const ORIGIN_URL = config.origin.url;   // e.g. http://localhost:4000
@@ -53,6 +56,8 @@ app.use((req, _res, next) => {
 //    Example: GET /fetch/content/hello.txt
 //         →   Origin GET /content/hello.txt
 app.get('/fetch/*', async (req, res) => {
+  const startTime = Date.now();
+
   // Strip the leading "/fetch" to get the origin path
   const originPath = req.params[0];          // e.g. "content/hello.txt"
   const cacheKey   = `/${originPath}`;       // normalised key
@@ -60,10 +65,12 @@ app.get('/fetch/*', async (req, res) => {
   // ── Step 1: Check Cache ──────────────────────────────────
   if (cache.has(cacheKey)) {
     const entry = cache.get(cacheKey);
-    console.log(`[${EDGE_ID}] ⚡ CACHE HIT  → "${cacheKey}"`);
+    const elapsed = Date.now() - startTime;
+    console.log(`[${EDGE_ID}] ⚡ CACHE HIT  → "${cacheKey}" | Served in ${elapsed}ms`);
     res.set('Content-Type', entry.contentType);
     res.set('X-Cache', 'HIT');
     res.set('X-Edge-Id', EDGE_ID);
+    res.set('X-Response-Time', `${elapsed}ms`);
     return res.send(entry.body);
   }
 
@@ -82,7 +89,8 @@ app.get('/fetch/*', async (req, res) => {
 
     // If Origin returns 404, forward that to the client
     if (originResponse.status === 404) {
-      console.log(`[${EDGE_ID}] ⚠️  Origin returned 404 for "${cacheKey}"`);
+      const elapsed = Date.now() - startTime;
+      console.log(`[${EDGE_ID}] ⚠️  Origin returned 404 for "${cacheKey}" | ${elapsed}ms`);
       return res.status(404).json({ error: 'Not found on Origin', edge: EDGE_ID });
     }
 
@@ -98,13 +106,17 @@ app.get('/fetch/*', async (req, res) => {
     console.log(`[${EDGE_ID}] 💾 Stored in cache: "${cacheKey}"`);
 
     // ── Step 4: Return to Client ───────────────────────────
+    const elapsed = Date.now() - startTime;
+    console.log(`[${EDGE_ID}] ❌ CACHE MISS → "${cacheKey}" | Served in ${elapsed}ms (fetched from Origin)`);
     res.set('Content-Type', contentType);
     res.set('X-Cache', 'MISS');
     res.set('X-Edge-Id', EDGE_ID);
+    res.set('X-Response-Time', `${elapsed}ms`);
     return res.send(body);
 
   } catch (err) {
-    console.error(`[${EDGE_ID}] 🚨 Error fetching from Origin:`, err.message);
+    const elapsed = Date.now() - startTime;
+    console.error(`[${EDGE_ID}] 🚨 Error fetching from Origin:`, err.message, `| ${elapsed}ms`);
     return res.status(502).json({
       error: 'Bad Gateway – could not reach Origin Server',
       edge: EDGE_ID,

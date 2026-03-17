@@ -44,6 +44,8 @@ app.use((req, _res, next) => {
 //    Example: GET /cdn/content/hello.txt
 //         →   Edge  GET /fetch/content/hello.txt
 app.get('/cdn/*', async (req, res) => {
+  const startTime = Date.now();
+
   // 1. Determine the origin-style path from the URL
   const resourcePath = req.params[0];          // e.g. "content/hello.txt"
 
@@ -66,18 +68,21 @@ app.get('/cdn/*', async (req, res) => {
     const contentType = edgeResponse.headers['content-type'] || 'application/octet-stream';
     const cacheStatus = edgeResponse.headers['x-cache'] || 'UNKNOWN';
     const edgeId      = edgeResponse.headers['x-edge-id'] || edge.id;
+    const elapsed     = Date.now() - startTime;
 
     res.set('Content-Type', contentType);
     res.set('X-Cache', cacheStatus);
     res.set('X-Edge-Id', edgeId);
     res.set('X-CDN', 'LiteCDN');
+    res.set('X-Response-Time', `${elapsed}ms`);
 
-    console.log(`[CDNSystem] ✅  Response from ${edgeId} | Cache: ${cacheStatus}`);
+    console.log(`[CDNSystem] ✅  Response from ${edgeId} | Cache: ${cacheStatus} | Served in ${elapsed}ms`);
 
     return res.status(edgeResponse.status).send(edgeResponse.data);
 
   } catch (err) {
-    console.error(`[CDNSystem] 🚨 Error contacting ${edge.id}:`, err.message);
+    const elapsed = Date.now() - startTime;
+    console.error(`[CDNSystem] 🚨 Error contacting ${edge.id}:`, err.message, `| ${elapsed}ms`);
     return res.status(502).json({
       error: `Bad Gateway – could not reach ${edge.id}`,
       details: err.message,

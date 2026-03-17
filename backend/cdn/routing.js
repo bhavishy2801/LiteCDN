@@ -57,6 +57,7 @@ class RoutingService {
   }
 
   /** @returns {number} current round-robin index */
+  
   getCurrentIndex() {
     return this._currentIndex;
   }
