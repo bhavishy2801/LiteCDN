@@ -30,7 +30,9 @@ const PORT    = config.cdn.port;
 const router  = new RoutingService();    // uses config.edges by default
 
 // Enable CORS so the frontend (if any) can call the gateway
-app.use(cors());
+app.use(cors({
+  exposedHeaders: ['X-Cache', 'X-Edge-Id', 'X-CDN', 'X-Response-Time'],
+}));
 
 // ── Logging Middleware ───────────────────────────────────────
 app.use((req, _res, next) => {
