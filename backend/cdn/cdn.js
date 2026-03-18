@@ -34,25 +34,29 @@ app.use(cors({
   exposedHeaders: ['X-Cache', 'X-Edge-Id', 'X-CDN', 'X-Response-Time'],
 }));
 
-// ── Logging Middleware ───────────────────────────────────────
-app.use((req, _res, next) => {
+// ── Handler Functions ────────────────────────────────────────
+
+/**
+ * Logs incoming requests for debugging purposes
+ */
+function logRequestMiddleware(req, _res, next) {
   console.log(`\n[CDNSystem] ════════════════════════════════════`);
   console.log(`[CDNSystem] 📥  Request received: ${req.method} ${req.url}`);
   next();
-});
+}
 
-// ── Main CDN Route ───────────────────────────────────────────
-//    Everything under /cdn/* is forwarded to an Edge Server.
-//    Example: GET /cdn/content/hello.txt
-//         →   Edge  GET /fetch/content/hello.txt
-app.get('/cdn/*', async (req, res) => {
+/**
+ * Main CDN request handler
+ * Routes requests to edge servers and proxies responses back
+ */
+async function handleCDNRequest(req, res) {
   const startTime = Date.now();
 
   // 1. Determine the origin-style path from the URL
   const resourcePath = req.params[0];          // e.g. "content/hello.txt"
 
   // 2. Use RoutingService to pick the next Edge Server
-  const edge = router.getNextEdge();
+  const edge = router.selectEdge();
   console.log(`[CDNSystem] 🔀 Routed to ${edge.id} (${edge.url})`);
 
   // 3. Build the URL to the Edge Server's /fetch endpoint
@@ -90,15 +94,19 @@ app.get('/cdn/*', async (req, res) => {
       details: err.message,
     });
   }
-});
+}
 
-// ── Health Check ─────────────────────────────────────────────
-app.get('/health', (_req, res) => {
+/**
+ * Health check endpoint
+ */
+function handleHealthCheck(_req, res) {
   res.json({ status: 'UP', server: 'CDNSystem', port: PORT });
-});
+}
 
-// ── Status / Debug ───────────────────────────────────────────
-app.get('/status', (_req, res) => {
+/**
+ * Status endpoint for debugging
+ */
+function handleStatusRequest(_req, res) {
   res.json({
     server: 'CDNSystem',
     port: PORT,
@@ -106,12 +114,22 @@ app.get('/status', (_req, res) => {
     currentIndex: router.getCurrentIndex(),
     edges: router.getEdgeList(),
   });
-});
+}
 
-// ── Catch-All 404 ────────────────────────────────────────────
-app.use((_req, res) => {
+/**
+ * Catch-all 404 handler
+ */
+function handleNotFound(_req, res) {
   res.status(404).json({ error: 'Not found – use /cdn/<path> to fetch content' });
-});
+}
+
+// ── Route Registrations ───────────────────────────────────────
+
+app.use(logRequestMiddleware);
+app.get('/cdn/*', handleCDNRequest);
+app.get('/health', handleHealthCheck);
+app.get('/status', handleStatusRequest);
+app.use(handleNotFound);
 
 // ── Start Server ─────────────────────────────────────────────
 app.listen(PORT, () => {
