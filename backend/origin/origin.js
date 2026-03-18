@@ -29,29 +29,24 @@ app.use((req, _res, next) => {
   next();
 });
 
-// ── Serve Static Files ───────────────────────────────────────
-//    Any file placed inside ./static/ can be requested via
-//    GET /content/<filename>
-app.use(
-  '/content',
-  express.static(path.join(__dirname, 'static'), {
-    // Send proper 404 when the file doesn't exist
+/**
+ * Serve static content files from the ./static/ directory
+ * @returns {express.Router} Configured router for static file serving
+ */
+function serveStaticContent() {
+  console.log('[OriginServer] 📂 Static content handler initialized');
+  return express.static(path.join(__dirname, 'static'), {
     fallthrough: false,
-  })
-);
-
-// Friendly error for missing static files
-app.use('/content', (err, _req, res, _next) => {
-  if (err.status === 404 || err.statusCode === 404) {
-    console.log('[OriginServer] ⚠️  File not found');
-    return res.status(404).json({ error: 'File not found on Origin' });
-  }
-  return res.status(500).json({ error: 'Internal Origin error' });
-});
-
-// ── Mock JSON API Endpoint ───────────────────────────────────
-app.get('/mock/api', (_req, res) => {
-  console.log('[OriginServer] 📤  Serving mock JSON data');
+  });
+}
+/**
+ * Handle mock JSON API requests
+ * @param {object} _req - Express request object
+ * @param {object} res - Express response object
+ * @returns {void}
+ */
+function serveMockAPI(_req, res) {
+  console.log('[OriginServer] 📤 Serving mock JSON data');
   res.json({
     source: 'OriginServer',
     timestamp: new Date().toISOString(),
@@ -60,17 +55,59 @@ app.get('/mock/api', (_req, res) => {
       items: ['alpha', 'beta', 'gamma'],
     },
   });
-});
+}
 
-// ── Health Check ─────────────────────────────────────────────
-app.get('/health', (_req, res) => {
+/**
+ * Handle health check requests
+ * @param {object} _req - Express request object
+ * @param {object} res - Express response object
+ * @returns {void}
+ */
+function handleHealthCheck(_req, res) {
+  console.log('[OriginServer] 💚 Health check requested');
   res.json({ status: 'UP', server: 'OriginServer', port: PORT });
-});
+}
 
-// ── Catch-All 404 ────────────────────────────────────────────
-app.use((_req, res) => {
+/**
+ * Handle static file errors (e.g., 404 for missing files)
+ * @param {object} err - Error object
+ * @param {object} _req - Express request object
+ * @param {object} res - Express response object
+ * @param {object} _next - Express next function
+ * @returns {void}
+ */
+
+function handleStaticError(err, _req, res, _next) {
+  if (err.status === 404 || err.statusCode === 404) {
+    console.log('[OriginServer] ⚠️  File not found');
+    return res.status(404).json({ error: 'File not found on Origin' });
+  }
+  return res.status(500).json({ error: 'Internal Origin error' });
+}
+
+/**
+ * Handle catch-all 404 requests
+ * @param {object} _req - Express request object
+ * @param {object} res - Express response object
+ * @returns {void}
+ */
+function handleNotFound(_req, res) {
+  console.log('[OriginServer] ❌ Endpoint not found');
   res.status(404).json({ error: 'Not found on Origin' });
-});
+}
+
+// ────────────────────────────────────────────────────────────
+// ── Express Routes ───────────────────────────────────────────
+// ────────────────────────────────────────────────────────────
+
+// ── Serve Static Files ───────────────────────────────────────
+//    Any file placed inside ./static/ can be requested via
+//    GET /content/<filename>
+app.use('/content', serveStaticContent());
+app.use('/content', handleStaticError);
+app.get('/mock/api', serveMockAPI);
+app.get('/health', handleHealthCheck);
+app.use(handleNotFound);
 
 // ── Start Server ─────────────────────────────────────────────
 app.listen(PORT, () => {
