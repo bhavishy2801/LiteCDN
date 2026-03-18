@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LiteCDN - Function Testing Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    :root {
+      --bg: #0b1120;
+      --card-bg: rgba(255, 255, 255, 0.04);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover-border: rgba(56, 189, 248, 0.25);
+      --glass-blur: 16px;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.15);
+      --green: #34d399;
+      --red: #f87171;
+      --yellow: #fbbf24;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --surface: rgba(15, 23, 42, 0.6);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2.5rem 2rem;
+      background-image:
+        radial-gradient(ellipse 60% 50% at 50% -10%, rgba(56, 189, 248, 0.08), transparent),
+        radial-gradient(ellipse 40% 40% at 80% 80%, rgba(99, 102, 241, 0.06), transparent);
+      background-attachment: fixed;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      animation: fadeSlideDown 0.6s ease-out;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--accent), #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 0.75rem 1.5rem;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      color: var(--text);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: var(--font);
+      font-weight: 500;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(var(--glass-blur));
+    }
+
+    button:hover {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: var(--card-hover-border);
+      transform: translateY(-2px);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), #06b6d4);
+      border-color: var(--accent);
+      color: var(--bg);
+      font-weight: 600;
+    }
+
+    button.primary:hover {
+      background: linear-gradient(135deg, #06b6d4, var(--accent));
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+    }
+
+    .test-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .test-card {
+      padding: 1.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(var(--glass-blur));
+      transition: all 0.3s ease;
+      animation: fadeSlideUp 0.6s ease-out;
+    }
+
+    .test-card:hover {
+      border-color: var(--card-hover-border);
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateY(-4px);
+    }
+
+    .test-card.testing {
+      border-color: var(--yellow);
+      background: rgba(251, 191, 36, 0.05);
+    }
+
+    .test-card.passed {
+      border-color: var(--green);
+      background: rgba(52, 211, 153, 0.05);
+    }
+
+    .test-card.failed {
+      border-color: var(--red);
+      background: rgba(248, 113, 113, 0.05);
+    }
+
+    .test-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .test-status {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      font-family: var(--mono);
+    }
+
+    .test-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .test-item {
+      padding: 0.5rem;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--mono);
+    }
+
+    .test-item.pass {
+      color: var(--green);
+    }
+
+    .test-item.fail {
+      color: var(--red);
+    }
+
+    .test-item.pending {
+      color: var(--yellow);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(56, 189, 248, 0.3);
+      border-top: 2px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeSlideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .summary {
+      padding: 1.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(var(--glass-blur));
+      margin-top: 2rem;
+    }
+
+    .summary-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--accent);
+    }
+
+    .summary-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .summary-item {
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius-sm);
+      text-align: center;
+    }
+
+    .summary-number {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .summary-number.pass {
+      color: var(--green);
+    }
+
+    .summary-number.fail {
+      color: var(--red);
+    }
+
+    .summary-number.pending {
+      color: var(--yellow);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--green);
+      transition: width 0.3s ease;
+      border-radius: 4px;
+    }
+
+    .error-log {
+      padding: 1.5rem;
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid var(--red);
+      border-radius: var(--radius);
+      margin-top: 1rem;
+    }
+
+    .error-title {
+      color: var(--red);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    .error-item {
+      font-size: 0.85rem;
+      font-family: var(--mono);
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius-sm);
+      color: var(--red);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(56, 189, 248, 0.3);
+      border-top: 3px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🧪 LiteCDN Function Testing</h1>
+    <p class="subtitle">Comprehensive coverage of all backend functions with unit & integration tests</p>
+
+    <div class="controls">
+      <button class="primary" id="runAllTests" onclick="runAllTests()">
+        ▶ Run All Tests
+      </button>
+      <button id="runCDNTests" onclick="runTestCategory('cdn')">
+        CDN Tests
+      </button>
+      <button id="runEdgeTests" onclick="runTestCategory('edge')">
+        Edge Tests
+      </button>
+      <button id="runOriginTests" onclick="runTestCategory('origin')">
+        Origin Tests
+      </button>
+      <button id="runRoutingTests" onclick="runTestCategory('routing')">
+        Routing Tests
+      </button>
+      <button id="runAPITests" onclick="runTestCategory('api')">
+        API Tests
+      </button>
+      <button id="clearResults" onclick="clearResults()">
+        Clear Results
+      </button>
+    </div>
+  </header>
+
+  <div id="testGrid" class="test-grid">
+    <!-- Test cards will be generated here -->
+  </div>
+
+  <div id="summary" class="summary" style="display:none;">
+    <div class="summary-title">📊 Test Summary</div>
+    <div class="summary-row">
+      <div class="summary-item">
+        <div class="summary-number pass" id="passedCount">0</div>
+        <div class="summary-label">Passed</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-number fail" id="failedCount">0</div>
+        <div class="summary-label">Failed</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-number pending" id="pendingCount">0</div>
+        <div class="summary-label">Pending</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-number" id="totalCount">0</div>
+        <div class="summary-label">Total</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-number" id="passRate">0%</div>
+        <div class="summary-label">Pass Rate</div>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressBar"></div>
+    </div>
+    <div id="errorLog"></div>
+  </div>
+
+  <script>
+    const testCategories = {
+      cdn: {
+        name: 'CDN Gateway (cdn.js)',
+        tests: [
+          'handleHealthCheck - returns complete health status',
+          'handleStatusRequest - returns edge list and status',
+          'handleCDNRequest - proxies file with correct headers',
+          'handleCDNRequest - distributes via round-robin',
+          'handleCDNRequest - returns 404 for invalid routes',
+        ]
+      },
+      edge: {
+        name: 'Edge Server (edge.js)',
+        tests: [
+          'fetchFromOrigin - fetches from origin correctly',
+          'putCache - stores in cache, serveFromCache - serves from cache',
+          'Cache - achieves > 50% hit rate across edges',
+        ]
+      },
+      origin: {
+        name: 'Origin Server (origin.js)',
+        tests: [
+          'serveStaticContent - serves multiple file types',
+          'serveStaticContent - returns 404 for missing files',
+          'handleHealthCheck - returns UP status',
+          'serveMockAPI - serves mock API data',
+        ]
+      },
+      routing: {
+        name: 'Routing Service (routing.js)',
+        tests: [
+          'constructor - initializes with 3 edges',
+          'selectEdge - implements perfect round-robin',
+          'getEdgeList & validateRequest',
+          'getCurrentIndex - tracks rotation index',
+        ]
+      },
+      api: {
+        name: 'Test API (testAPI.js)',
+        tests: [
+          'runLoadTestAPI - handles 100 concurrent requests',
+          'runCacheTestAPI - validates cache behavior',
+          'runRoutingTestAPI - validates routing sequence',
+        ]
+      }
+    };
+
+    let results = {};
+    let detailedResults = {};
+
+    async function initializeUI() {
+      const testGrid = document.getElementById('testGrid');
+      testGrid.innerHTML = '';
+
+      for (const [key, category] of Object.entries(testCategories)) {
+        const card = document.createElement('div');
+        card.className = 'test-card';
+        card.id = `card-${key}`;
+        
+        const testsHtml = category.tests.map((test, idx) => `
+          <div class="test-item" id="${key}-${idx}">
+            <span class="spinner" style="opacity:0;"></span>
+            ${test}
+          </div>
+        `).join('');
+
+        card.innerHTML = `
+          <div class="test-title">📦 ${category.name}</div>
+          <div class="test-status" id="status-${key}">Ready</div>
+          <div class="test-list">
+            ${testsHtml}
+          </div>
+        `;
+
+        testGrid.appendChild(card);
+      }
+    }
+
+    async function runAllTests() {
+      results = {};
+      detailedResults = {};
+      document.getElementById('summary').style.display = 'block';
+
+      // Clear previous error logs
+      document.getElementById('errorLog').innerHTML = '';
+
+      // Show loading state
+      const summaryTitle = document.querySelector('.summary-title');
+      const spinner = document.createElement('span');
+      spinner.className = 'spinner';
+      spinner.style.marginLeft = '10px';
+      spinner.id = 'test-spinner';
+      summaryTitle.appendChild(spinner);
+
+      try {
+        // Call backend to run tests
+        const response = await fetch('http://localhost:3000/api/tests/run-all', {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+
+        const testData = await response.json();
+        detailedResults = testData;
+
+        // Process results from backend
+        processTestResults(testData);
+        updateSummary();
+
+      } catch (err) {
+        console.error('Error running tests:', err);
+        showError(`❌ Failed to run tests: ${err.message}\n\nMake sure the servers are running:\n$ npm run start:all`);
+      } finally {
+        // Remove spinner
+        const spinner = document.getElementById('test-spinner');
+        if (spinner) spinner.remove();
+      }
+    }
+
+    async function runTestsLocally() {
+      // Fallback: display message to run tests via CLI
+      showError('📋 To run tests, execute from terminal:\n\n$ npm run test:all');
+      
+      // Try to read results from file if available
+      try {
+        const response = await fetch('../testing/TEST_REPORT_DETAILED.json');
+        if (response.ok) {
+          const fileData = await response.json();
+          detailedResults = fileData;
+          processTestResults(fileData);
+          updateSummary();
+        }
+      } catch (e) {
+        console.log('Report file not found - run tests first');
+      }
+    }
+
+    function processTestResults(testData) {
+      // Map results to UI
+      const allTests = testData.results?.passed || [];
+      const allFailed = testData.results?.failed || [];
+
+      // Group by module
+      const byModule = {};
+      
+      allTests.forEach(test => {
+        const module = test.moduleName.replace('.js', '');
+        if (!results[module]) results[module] = {};
+        results[module][test.testName] = {
+          status: 'PASS',
+          assertions: test.assertions,
+        };
+      });
+
+      allFailed.forEach(test => {
+        const module = test.moduleName.replace('.js', '');
+        if (!results[module]) results[module] = {};
+        results[module][test.testName] = {
+          status: 'FAIL',
+          assertions: test.assertions,
+        };
+      });
+
+      // Update UI for each category
+      for (const [categoryKey, category] of Object.entries(testCategories)) {
+        const card = document.getElementById(`card-${categoryKey}`);
+        const status = document.getElementById(`status-${categoryKey}`);
+        let passed = 0;
+        let failed = 0;
+
+        category.tests.forEach((testName, idx) => {
+          const itemId = `${categoryKey}-${idx}`;
+          const element = document.getElementById(itemId);
+          
+          // Find matching result
+          let testResult = null;
+          for (const module of Object.values(results)) {
+            for (const [name, result] of Object.entries(module)) {
+              if (name === testName) {
+                testResult = result;
+                break;
+              }
+            }
+            if (testResult) break;
+          }
+
+          if (testResult) {
+            if (testResult.status === 'PASS') {
+              element.classList.add('pass');
+              element.innerHTML = `<span style="color:var(--green);">✓</span> ${testName}`;
+              passed++;
+            } else {
+              element.classList.add('fail');
+              element.innerHTML = `<span style="color:var(--red);">✗</span> ${testName}`;
+              failed++;
+              
+              // Add expandable error details
+              const errorDiv = document.createElement('div');
+              errorDiv.className = 'error-details';
+              errorDiv.style.fontSize = '0.75rem';
+              errorDiv.style.color = 'var(--red)';
+              errorDiv.style.marginTop = '0.5rem';
+              errorDiv.style.paddingTop = '0.5rem';
+              errorDiv.style.borderTop = '1px solid rgba(248, 113, 113, 0.2)';
+              
+              // Show failed assertions
+              if (testResult.assertions) {
+                testResult.assertions.forEach(assertion => {
+                  if (!assertion.passed) {
+                    const assertText = document.createElement('div');
+                    assertText.style.marginBottom = '0.5rem';
+                    assertText.innerHTML = `
+                      <strong>✗ ${assertion.message}</strong><br>
+                      ${assertion.expected !== undefined ? `Expected: ${JSON.stringify(assertion.expected)}<br>` : ''}
+                      ${assertion.actual !== undefined ? `Actual: ${JSON.stringify(assertion.actual)}<br>` : ''}
+                      ${assertion.context && Object.keys(assertion.context).length > 0 ? 
+                        `Context: ${JSON.stringify(assertion.context)}<br>` : ''}
+                    `;
+                    errorDiv.appendChild(assertText);
+                  }
+                });
+              }
+              
+              element.parentElement.appendChild(errorDiv);
+            }
+          } else {
+            element.classList.add('pending');
+            element.querySelector('.spinner').style.opacity = '1';
+          }
+        });
+
+        const status_text = `${passed}/${category.tests.length} passed`;
+        status.textContent = status_text;
+        
+        card.classList.remove('testing', 'passed', 'failed');
+        if (failed === 0 && passed > 0) {
+          card.classList.add('passed');
+        } else if (failed > 0) {
+          card.classList.add('failed');
+        }
+      }
+    }
+
+    async function runTestCategory(categoryKey) {
+      // For category-specific tests, show instructions
+      showError(`📋 Category filtering not available in GUI.\n\nRun all tests from CLI:\n\n$ npm run test:all\n\nThen refresh this page to see detailed results.`);
+    }
+
+    function updateSummary() {
+      let totalPassed = 0;
+      let totalFailed = 0;
+
+      for (const module of Object.values(results)) {
+        for (const test of Object.values(module)) {
+          if (test.status === 'PASS') totalPassed++;
+          else if (test.status === 'FAIL') totalFailed++;
+        }
+      }
+
+      const total = totalPassed + totalFailed;
+      const passRate = total > 0 ? Math.round((totalPassed / total) * 100) : 0;
+
+      document.getElementById('passedCount').textContent = totalPassed;
+      document.getElementById('failedCount').textContent = totalFailed;
+      document.getElementById('totalCount').textContent = total;
+      document.getElementById('passRate').textContent = `${passRate}%`;
+      document.getElementById('progressBar').style.width = `${passRate}%`;
+
+      if (totalFailed > 0) {
+        let errorHtml = `<div class="error-title">❌ Failed Tests (${totalFailed})</div>`;
+        for (const [moduleName, tests] of Object.entries(results)) {
+          for (const [testName, result] of Object.entries(tests)) {
+            if (result.status === 'FAIL') {
+              errorHtml += `<div class="error-item">
+                <strong>${moduleName}</strong><br>
+                ${testName}
+              </div>`;
+            }
+          }
+        }
+        document.getElementById('errorLog').innerHTML = errorHtml;
+      }
+    }
+
+    function showError(message) {
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'error-log';
+      const formattedMessage = message.replace(/\n/g, '<br>');
+      errorDiv.innerHTML = `<div class="error-title">ℹ️ ${formattedMessage}</div>`;
+      document.getElementById('summary').appendChild(errorDiv);
+    }
+
+    function clearResults() {
+      results = {};
+      detailedResults = {};
+      document.getElementById('summary').style.display = 'none';
+      document.getElementById('errorLog').innerHTML = '';
+      initializeUI();
+    }
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', async () => {
+      initializeUI();
+    });
+  </script>
+</body>
+</html>

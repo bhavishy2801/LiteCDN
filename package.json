@@ -9,7 +9,15 @@
     "start:edge2": "set PORT=3002&& set EDGE_ID=Edge-2&& node backend/edge/edge.js",
     "start:edge3": "set PORT=3003&& set EDGE_ID=Edge-3&& node backend/edge/edge.js",
     "start:cdn": "node backend/cdn/cdn.js",
-    "start:all": "node scripts/startAll.js"
+    "start:all": "node scripts/startAll.js",
+    "test:all": "node testing/unitTests.js",
+    "test:cli": "node testing/unitTests.js",
+    "test:gui": "echo 'Open http://localhost:3000/testing-dashboard.html in your browser'",
+    "test:cdn": "node -e \"const tests = require('./testing/unitTests.js'); tests.testCDNFunctions().then(() => process.exit(0));\"",
+    "test:edge": "node -e \"const tests = require('./testing/unitTests.js'); tests.testEdgeFunctions().then(() => process.exit(0));\"",
+    "test:origin": "node -e \"const tests = require('./testing/unitTests.js'); tests.testOriginFunctions().then(() => process.exit(0));\"",
+    "test:routing": "node -e \"const tests = require('./testing/unitTests.js'); tests.testRoutingFunctions().then(() => process.exit(0));\"",
+    "test:api": "node -e \"const tests = require('./testing/unitTests.js'); tests.testAPIFunctions().then(() => process.exit(0));\""
   },
   "keywords": ["cdn", "distributed-systems", "express", "educational"],
   "author": "LiteCDN Team",

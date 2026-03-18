@@ -23,6 +23,8 @@ const axios          = require('axios');
 const cors           = require('cors');
 const config         = require('../config');
 const RoutingService = require('./routing');
+const testAPI        = require('./testAPI');
+const { runAllTests  } = require('../../testing/unitTests');
 
 // ── Initialise ───────────────────────────────────────────────
 const app     = express();
@@ -33,6 +35,10 @@ const router  = new RoutingService();    // uses config.edges by default
 app.use(cors({
   exposedHeaders: ['X-Cache', 'X-Edge-Id', 'X-CDN', 'X-Response-Time'],
 }));
+
+// ── Serve Frontend (Dashboard) ───────────────────────────────
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../../frontend')));
 
 // ── Handler Functions ────────────────────────────────────────
 
@@ -115,13 +121,41 @@ function handleStatusRequest(_req, res) {
     edges: router.getEdgeList(),
   });
 }
+// ── Test API Endpoints ───────────────────────────────────────
+//    Dashboard endpoints to run tests and return JSON results
 
-/**
- * Catch-all 404 handler
- */
-function handleNotFound(_req, res) {
-  res.status(404).json({ error: 'Not found – use /cdn/<path> to fetch content' });
-}
+app.get('/api/tests/run-all', async (_req, res) => {
+  try {
+    const result = await runAllTests();
+    res.json(result);
+  } catch (err) {
+    console.error('Error running tests:', err);
+    res.status(500).json({ 
+      error: 'Failed to run tests', 
+      message: err.message,
+      summary: { total: 0, passed: 0, failed: 0, passRate: 0 },
+      results: { passed: [], failed: [] }
+    });
+  }
+});
+
+app.get('/api/tests/load', async (_req, res) => {
+  const gatewayBase = `http://localhost:${PORT}`;
+  const result = await testAPI.runLoadTestAPI(gatewayBase);
+  res.json(result);
+});
+
+app.get('/api/tests/cache', async (_req, res) => {
+  const gatewayBase = `http://localhost:${PORT}`;
+  const result = await testAPI.runCacheTestAPI(gatewayBase);
+  res.json(result);
+});
+
+app.get('/api/tests/routing', async (_req, res) => {
+  const gatewayBase = `http://localhost:${PORT}`;
+  const result = await testAPI.runRoutingTestAPI(gatewayBase);
+  res.json(result);
+});
 
 // ── Route Registrations ───────────────────────────────────────
 
@@ -129,7 +163,11 @@ app.use(logRequestMiddleware);
 app.get('/cdn/*', handleCDNRequest);
 app.get('/health', handleHealthCheck);
 app.get('/status', handleStatusRequest);
-app.use(handleNotFound);
+
+// ── Catch-All 404 ────────────────────────────────────────────
+app.use((_req, res) => {
+  res.status(404).json({ error: 'Not found – use /cdn/<path> to fetch content' });
+});
 
 // ── Start Server ─────────────────────────────────────────────
 app.listen(PORT, () => {

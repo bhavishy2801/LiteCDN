@@ -104,8 +104,7 @@ function handleNotFound(_req, res) {
 //    Any file placed inside ./static/ can be requested via
 //    GET /content/<filename>
 app.use('/content', serveStaticContent());
-app.use('/content', handleStaticError);
-app.get('/mock/api', serveMockAPI);
+app.use('/content', handleStaticError);app.get('/api/data', serveMockAPI);app.get('/mock/api', serveMockAPI);
 app.get('/health', handleHealthCheck);
 app.use(handleNotFound);
 
