@@ -36,10 +36,76 @@ const EDGE_ID = process.env.EDGE_ID || `Edge-${PORT}`;
 
 const ORIGIN_URL = config.origin.url;   // e.g. http://localhost:4000
 
-// ── In-Memory Cache (simple Map) ─────────────────
-//    key   = request path  (e.g. "/content/hello.txt")
-//    value = { body, contentType, cachedAt }
-const cache = new Map();
+// ── Segmented Cache Configuration (35-60-5) ──────────────────────
+const SEGMENTS = {
+  NEW: 'new',
+  POPULAR: 'popular',
+  MISS_AWARE: 'missAware',
+};
+
+const CACHE_CAPACITY = Number(process.env.CACHE_CAPACITY || 10);
+
+const TTL_MS = {
+  [SEGMENTS.NEW]: 5 * 60 * 1000,
+  [SEGMENTS.POPULAR]: 60 * 60 * 1000,
+  [SEGMENTS.MISS_AWARE]: 60 * 1000,
+};
+
+const POPULAR_HARD_CEILING_MS = 12 * 60 * 60 * 1000;
+const NEW_TO_POPULAR_THRESHOLD = 2;
+const MISS_AWARE_PROMOTION_THRESHOLD = 2;
+
+function resolveSegmentCapacities(total) {
+  if (!Number.isFinite(total) || total <= 0) {
+    return {
+      [SEGMENTS.NEW]: 1,
+      [SEGMENTS.POPULAR]: 1,
+      [SEGMENTS.MISS_AWARE]: 1,
+    };
+  }
+
+  let newCap = Math.max(1, Math.floor(total * 0.35));
+  let popularCap = Math.max(1, Math.floor(total * 0.60));
+  let missAwareCap = total - newCap - popularCap;
+
+  if (missAwareCap < 1) {
+    missAwareCap = 1;
+  }
+
+  while (newCap + popularCap + missAwareCap > total) {
+    if (popularCap > newCap && popularCap > 1) {
+      popularCap -= 1;
+    } else if (newCap > 1) {
+      newCap -= 1;
+    } else if (missAwareCap > 1) {
+      missAwareCap -= 1;
+    } else {
+      break;
+    }
+  }
+
+  while (newCap + popularCap + missAwareCap < total) {
+    popularCap += 1;
+  }
+
+  return {
+    [SEGMENTS.NEW]: newCap,
+    [SEGMENTS.POPULAR]: popularCap,
+    [SEGMENTS.MISS_AWARE]: missAwareCap,
+  };
+}
+
+const SEGMENT_CAPACITY = resolveSegmentCapacities(CACHE_CAPACITY);
+
+// Each segment is an LRU map (insertion order updated on hit).
+const cacheSegments = {
+  [SEGMENTS.NEW]: new Map(),
+  [SEGMENTS.POPULAR]: new Map(),
+  [SEGMENTS.MISS_AWARE]: new Map(),
+};
+
+// Tracks consecutive edge misses per key for miss-aware admission.
+const missCounters = new Map();
 
 // ── Create Express App ───────────────────────────────────────
 const app = express();
@@ -55,14 +121,194 @@ app.use((req, _res, next) => {
  * @param {string} path - Cache key (normalized path)
  * @returns {object|null} Cache entry if found, null otherwise
  */
-function serveFromCache(path) {
-  if (cache.has(path)) {
-    const entry = cache.get(path);
-    console.log(`[${EDGE_ID}] ⚡ CACHE HIT  → "${path}"`);
-    return entry;
+function getTotalCacheSize() {
+  return (
+    cacheSegments[SEGMENTS.NEW].size
+    + cacheSegments[SEGMENTS.POPULAR].size
+    + cacheSegments[SEGMENTS.MISS_AWARE].size
+  );
+}
+
+function removeFromAllSegments(path) {
+  for (const segmentName of Object.values(SEGMENTS)) {
+    cacheSegments[segmentName].delete(path);
   }
-  console.log(`[${EDGE_ID}] ❌ CACHE MISS → "${path}"`);
+}
+
+function findSegmentEntry(path) {
+  for (const segmentName of [SEGMENTS.POPULAR, SEGMENTS.MISS_AWARE, SEGMENTS.NEW]) {
+    const segmentMap = cacheSegments[segmentName];
+    if (segmentMap.has(path)) {
+      return { segmentName, entry: segmentMap.get(path) };
+    }
+  }
   return null;
+}
+
+function remainingTtl(entry, segmentName, now) {
+  const rollingRemaining = entry.expiresAt - now;
+  if (segmentName === SEGMENTS.POPULAR) {
+    return Math.min(rollingRemaining, entry.hardExpiresAt - now);
+  }
+  return rollingRemaining;
+}
+
+function isExpired(entry, segmentName, now) {
+  if (remainingTtl(entry, segmentName, now) <= 0) {
+    return true;
+  }
+  return false;
+}
+
+function pickEvictionKey(segmentName) {
+  const segmentMap = cacheSegments[segmentName];
+  const now = Date.now();
+
+  let candidatePath = null;
+  let candidateEntry = null;
+
+  for (const [path, entry] of segmentMap.entries()) {
+    if (!candidateEntry) {
+      candidatePath = path;
+      candidateEntry = entry;
+      continue;
+    }
+
+    if (entry.lastAccessedAt < candidateEntry.lastAccessedAt) {
+      candidatePath = path;
+      candidateEntry = entry;
+      continue;
+    }
+
+    if (entry.lastAccessedAt === candidateEntry.lastAccessedAt) {
+      const currentRemaining = remainingTtl(entry, segmentName, now);
+      const candidateRemaining = remainingTtl(candidateEntry, segmentName, now);
+      if (currentRemaining < candidateRemaining) {
+        candidatePath = path;
+        candidateEntry = entry;
+      }
+    }
+  }
+
+  return candidatePath;
+}
+
+function evictOneFromSegment(segmentName, reason) {
+  const keyToEvict = pickEvictionKey(segmentName);
+  if (!keyToEvict) {
+    return false;
+  }
+
+  cacheSegments[segmentName].delete(keyToEvict);
+  console.log(`[${EDGE_ID}] 🧹 Evicted from ${segmentName}: "${keyToEvict}" (${reason})`);
+  return true;
+}
+
+function evictByPriority(reason) {
+  const order = [SEGMENTS.NEW, SEGMENTS.MISS_AWARE, SEGMENTS.POPULAR];
+  for (const segmentName of order) {
+    if (cacheSegments[segmentName].size > 0) {
+      return evictOneFromSegment(segmentName, reason);
+    }
+  }
+  return false;
+}
+
+function enforceSegmentCapacity(segmentName) {
+  const segmentMap = cacheSegments[segmentName];
+  const segmentCap = SEGMENT_CAPACITY[segmentName];
+
+  while (segmentMap.size > segmentCap) {
+    const beforeSize = segmentMap.size;
+    evictByPriority(`capacity pressure for ${segmentName}`);
+
+    // Ensure this segment actually shrinks even if higher-priority
+    // segments are being drained first.
+    if (segmentMap.size === beforeSize) {
+      evictOneFromSegment(segmentName, `segment cap exceeded for ${segmentName}`);
+    }
+  }
+
+  while (getTotalCacheSize() > CACHE_CAPACITY) {
+    if (!evictByPriority('global capacity pressure')) {
+      break;
+    }
+  }
+}
+
+function createCacheEntry(path, body, contentType, segmentName, initialHits = 0) {
+  const now = Date.now();
+  const expiresAt = now + TTL_MS[segmentName];
+
+  return {
+    path,
+    body,
+    contentType,
+    segmentName,
+    hits: initialHits,
+    firstCachedAt: now,
+    lastAccessedAt: now,
+    expiresAt,
+    hardExpiresAt: segmentName === SEGMENTS.POPULAR ? now + POPULAR_HARD_CEILING_MS : null,
+  };
+}
+
+function putInSegment(path, body, contentType, segmentName, initialHits = 0) {
+  removeFromAllSegments(path);
+
+  const entry = createCacheEntry(path, body, contentType, segmentName, initialHits);
+  cacheSegments[segmentName].set(path, entry);
+  enforceSegmentCapacity(segmentName);
+
+  console.log(`[${EDGE_ID}] 💾 Stored in ${segmentName}: "${path}"`);
+  return entry;
+}
+
+function promoteToPopular(path, entry) {
+  const promotedEntry = putInSegment(path, entry.body, entry.contentType, SEGMENTS.POPULAR, entry.hits);
+  console.log(`[${EDGE_ID}] 🚀 Promoted to popular: "${path}"`);
+  return promotedEntry;
+}
+
+function touchEntry(segmentName, path, entry) {
+  const now = Date.now();
+  entry.lastAccessedAt = now;
+  entry.expiresAt = now + TTL_MS[segmentName];
+  cacheSegments[segmentName].delete(path);
+  cacheSegments[segmentName].set(path, entry);
+}
+
+function serveFromCache(path) {
+  const found = findSegmentEntry(path);
+  if (!found) {
+    console.log(`[${EDGE_ID}] ❌ CACHE MISS → "${path}"`);
+    return null;
+  }
+
+  const { segmentName, entry } = found;
+  const now = Date.now();
+
+  if (isExpired(entry, segmentName, now)) {
+    cacheSegments[segmentName].delete(path);
+    console.log(`[${EDGE_ID}] ⌛ TTL EXPIRED (${segmentName}) → "${path}"`);
+    return null;
+  }
+
+  entry.hits += 1;
+  touchEntry(segmentName, path, entry);
+
+  if (segmentName === SEGMENTS.NEW && entry.hits >= NEW_TO_POPULAR_THRESHOLD) {
+    const promoted = promoteToPopular(path, entry);
+    return { segmentName: SEGMENTS.POPULAR, entry: promoted };
+  }
+
+  if (segmentName === SEGMENTS.MISS_AWARE && entry.hits >= NEW_TO_POPULAR_THRESHOLD) {
+    const promoted = promoteToPopular(path, entry);
+    return { segmentName: SEGMENTS.POPULAR, entry: promoted };
+  }
+
+  console.log(`[${EDGE_ID}] ⚡ CACHE HIT (${segmentName}) → "${path}"`);
+  return { segmentName, entry };
 }
 
 /**
@@ -99,19 +345,13 @@ async function fetchFromOrigin(path) {
  * @param {object} entry - Cache entry { path, body, contentType }
  * @returns {boolean} True if stored successfully
  */
-function putCache(entry) {
+function putCache(entry, segmentName) {
   if (!entry || !entry.path) {
-    console.warn('[${EDGE_ID}] Invalid cache entry');
+    console.warn(`[${EDGE_ID}] Invalid cache entry`);
     return false;
   }
 
-  cache.set(entry.path, {
-    body: entry.body,
-    contentType: entry.contentType,
-    cachedAt: new Date().toISOString(),
-  });
-
-  console.log(`[${EDGE_ID}] 💾 Stored in cache: "${entry.path}"`);
+  putInSegment(entry.path, entry.body, entry.contentType, segmentName, entry.hits || 0);
   return true;
 }
 
@@ -121,8 +361,21 @@ function putCache(entry) {
  * @returns {void}
  */
 function expireTTL() {
-  // TODO: Implement TTL-based cache expiration
-  console.log(`[${EDGE_ID}] ⏰ TTL expiration check (not yet implemented)`);
+  const now = Date.now();
+  let expiredCount = 0;
+
+  for (const segmentName of Object.values(SEGMENTS)) {
+    for (const [path, entry] of cacheSegments[segmentName].entries()) {
+      if (isExpired(entry, segmentName, now)) {
+        cacheSegments[segmentName].delete(path);
+        expiredCount += 1;
+      }
+    }
+  }
+
+  if (expiredCount > 0) {
+    console.log(`[${EDGE_ID}] ⏰ Expired ${expiredCount} entries by TTL`);
+  }
 }
 // ── Main Fetch Route ─────────────────────────────────────────
 //    Anything under /fetch/* is treated as a cacheable request.
@@ -131,21 +384,24 @@ function expireTTL() {
 //         →   Origin GET /content/hello.txt
 app.get('/fetch/*', async (req, res) => {
   const startTime = Date.now();
+  expireTTL();
 
   // Strip the leading "/fetch" to get the origin path
   const originPath = req.params[0];          // e.g. "content/hello.txt"
   const cacheKey   = `/${originPath}`;       // normalised key
 
   // ── Step 1: Check Cache ──────────────────────────────────
-  let cacheEntry = serveFromCache(cacheKey);
-  if (cacheEntry) {
+  const cacheResult = serveFromCache(cacheKey);
+  if (cacheResult) {
+    missCounters.delete(cacheKey);
     const elapsed = Date.now() - startTime;
-    res.set('Content-Type', cacheEntry.contentType);
+    res.set('Content-Type', cacheResult.entry.contentType);
     res.set('X-Cache', 'HIT');
+    res.set('X-Cache-Segment', cacheResult.segmentName);
     res.set('X-Edge-Id', EDGE_ID);
     res.set('X-Response-Time', `${elapsed}ms`);
-    console.log(`[${EDGE_ID}] ⚡ Served from cache in ${elapsed}ms`);
-    return res.send(cacheEntry.body);
+    console.log(`[${EDGE_ID}] ⚡ Served from cache in ${elapsed}ms (${cacheResult.segmentName})`);
+    return res.send(cacheResult.entry.body);
   }
 
   // ── Step 2: Fetch from Origin ────────────────────────────
@@ -166,18 +422,26 @@ app.get('/fetch/*', async (req, res) => {
     return res.status(404).json({ error: 'Not found on Origin', edge: EDGE_ID });
   }
 
+  const currentMisses = (missCounters.get(cacheKey) || 0) + 1;
+  missCounters.set(cacheKey, currentMisses);
+
+  const destinationSegment =
+    currentMisses >= MISS_AWARE_PROMOTION_THRESHOLD ? SEGMENTS.MISS_AWARE : SEGMENTS.NEW;
+
   // ── Step 3: Store in Cache ─────────────────────────────
   putCache({
     path: cacheKey,
     body: originResponse.body,
     contentType: originResponse.contentType,
-  });
+    hits: 0,
+  }, destinationSegment);
 
   // ── Step 4: Return to Client ───────────────────────────
   const elapsed = Date.now() - startTime;
   console.log(`[${EDGE_ID}] ❌ CACHE MISS → "${cacheKey}" | Served in ${elapsed}ms (fetched from Origin)`);
   res.set('Content-Type', originResponse.contentType);
   res.set('X-Cache', 'MISS');
+  res.set('X-Cache-Segment', destinationSegment);
   res.set('X-Edge-Id', EDGE_ID);
   res.set('X-Response-Time', `${elapsed}ms`);
   return res.send(originResponse.body);
@@ -189,14 +453,32 @@ app.get('/health', (_req, res) => {
     status: 'UP',
     server: EDGE_ID,
     port: Number(PORT),
-    cacheSize: cache.size,
+    cacheSize: getTotalCacheSize(),
+    cacheCapacity: CACHE_CAPACITY,
+    segments: {
+      [SEGMENTS.NEW]: cacheSegments[SEGMENTS.NEW].size,
+      [SEGMENTS.POPULAR]: cacheSegments[SEGMENTS.POPULAR].size,
+      [SEGMENTS.MISS_AWARE]: cacheSegments[SEGMENTS.MISS_AWARE].size,
+    },
   });
 });
 
 // ── Debug: Dump Cache Keys ───────────────────────────────────
 app.get('/cache', (_req, res) => {
-  const keys = [...cache.keys()];
-  res.json({ edge: EDGE_ID, cacheSize: cache.size, keys });
+  expireTTL();
+  const keys = {
+    [SEGMENTS.NEW]: [...cacheSegments[SEGMENTS.NEW].keys()],
+    [SEGMENTS.POPULAR]: [...cacheSegments[SEGMENTS.POPULAR].keys()],
+    [SEGMENTS.MISS_AWARE]: [...cacheSegments[SEGMENTS.MISS_AWARE].keys()],
+  };
+
+  res.json({
+    edge: EDGE_ID,
+    cacheSize: getTotalCacheSize(),
+    cacheCapacity: CACHE_CAPACITY,
+    segmentCapacity: SEGMENT_CAPACITY,
+    keys,
+  });
 });
 
 // ── Catch-All 404 ────────────────────────────────────────────
