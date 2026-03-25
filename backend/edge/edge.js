@@ -2,14 +2,14 @@
  * ============================================================
  *  LiteCDN – Edge Server
  * ============================================================
- *  An Edge Server sits close to the end-user.  It maintains a
- *  **basic in-memory cache** (a plain JS Map) and tries to
- *  serve requests from cache before reaching back to the
- *  Origin Server.
+ *  An Edge Server sits close to the end-user. It maintains a
+ *  **segmented in-memory cache** and tries to serve requests
+ *  from cache before reaching back to the Origin Server.
  *
  *  Current features:
- *    • Cache is a simple Map (no TTL, no segmentation).
- *    • No eviction policy yet.
+ *    • Segmented cache: New (35%), Popular (60%), Miss-Aware (5%).
+ *    • Sliding TTL and LRU eviction within segments.
+ *    • Prioritized inter-segment eviction: New -> Miss-Aware -> Popular.
  *
  *  Environment Variables (set before starting):
  *    PORT     – port this edge listens on  (default 3001)
@@ -55,6 +55,7 @@ const POPULAR_HARD_CEILING_MS = 12 * 60 * 60 * 1000;
 const NEW_TO_POPULAR_THRESHOLD = 2;
 const MISS_AWARE_PROMOTION_THRESHOLD = 2;
 
+// Just the math to give proper Capacities
 function resolveSegmentCapacities(total) {
   if (!Number.isFinite(total) || total <= 0) {
     return {
@@ -135,6 +136,7 @@ function removeFromAllSegments(path) {
   }
 }
 
+// check the existance of the data in already present cache
 function findSegmentEntry(path) {
   for (const segmentName of [SEGMENTS.POPULAR, SEGMENTS.MISS_AWARE, SEGMENTS.NEW]) {
     const segmentMap = cacheSegments[segmentName];
@@ -153,6 +155,7 @@ function remainingTtl(entry, segmentName, now) {
   return rollingRemaining;
 }
 
+//Check if expired or not.
 function isExpired(entry, segmentName, now) {
   if (remainingTtl(entry, segmentName, now) <= 0) {
     return true;
@@ -160,6 +163,7 @@ function isExpired(entry, segmentName, now) {
   return false;
 }
 
+// What it does?
 function pickEvictionKey(segmentName) {
   const segmentMap = cacheSegments[segmentName];
   const now = Date.now();
@@ -270,6 +274,7 @@ function promoteToPopular(path, entry) {
   return promotedEntry;
 }
 
+// Changes the cache_file(entry)'s properties upon accessation
 function touchEntry(segmentName, path, entry) {
   const now = Date.now();
   entry.lastAccessedAt = now;
@@ -288,6 +293,8 @@ function serveFromCache(path) {
   const { segmentName, entry } = found;
   const now = Date.now();
 
+  // Bruh what? if present inside cache but expiry time passed then remove it 
+  // first then return null T_T T_T ?
   if (isExpired(entry, segmentName, now)) {
     cacheSegments[segmentName].delete(path);
     console.log(`[${EDGE_ID}] ⌛ TTL EXPIRED (${segmentName}) → "${path}"`);
@@ -295,7 +302,7 @@ function serveFromCache(path) {
   }
 
   entry.hits += 1;
-  touchEntry(segmentName, path, entry);
+  touchEntry(segmentName, path, entry); // Changes entry(cache file)'s properties upon accessation
 
   if (segmentName === SEGMENTS.NEW && entry.hits >= NEW_TO_POPULAR_THRESHOLD) {
     const promoted = promoteToPopular(path, entry);
@@ -392,11 +399,12 @@ app.get('/fetch/*', async (req, res) => {
 
   // ── Step 1: Check Cache ──────────────────────────────────
   const cacheResult = serveFromCache(cacheKey);
+  // if not null then return as usual
   if (cacheResult) {
     missCounters.delete(cacheKey);
     const elapsed = Date.now() - startTime;
     res.set('Content-Type', cacheResult.entry.contentType);
-    res.set('X-Cache', 'HIT');
+    res.set('X-Cache', 'HIT');// Response headers are setted here
     res.set('X-Cache-Segment', cacheResult.segmentName);
     res.set('X-Edge-Id', EDGE_ID);
     res.set('X-Response-Time', `${elapsed}ms`);
