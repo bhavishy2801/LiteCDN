@@ -1,0 +1,11 @@
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+
+This is a larger sample file to demonstrate caching behaviour.
+When this file is requested through the CDN for the first time,
+it will be fetched from the Origin Server and stored in the
+Edge Server's in-memory cache.  Subsequent requests routed to
+the same Edge Server will be served directly from cache.
+
+LiteCDN – Demo Content

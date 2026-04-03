@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LiteCDN - Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <h1>🌐 <span>LiteCDN</span></h1>
+  <p class="subtitle">End-to-End Connectivity Dashboard</p>
+
+  <div class="grid">
+    <!-- Request Panel -->
+    <div class="card">
+      <h2><span class="icon">📡</span> Send Request</h2>
+      <label for="path">Resource Path</label>
+      <select id="path">
+        <option value="content/hello.txt">content/hello.txt</option>
+        <option value="content/data.json">content/data.json</option>
+        <option value="content/sample.txt">content/sample.txt</option>
+        <option value="mock/api">mock/api (dynamic JSON)</option>
+      </select>
+      <label for="gateway">CDN Gateway</label>
+      <input id="gateway" value="http://localhost:3000" />
+      <button onclick="sendRequest()">Fetch via CDN</button>
+    </div>
+
+    <!-- Response Panel -->
+    <div class="card">
+      <h2><span class="icon">📨</span> Response</h2>
+      <div class="meta" id="meta"></div>
+      <div class="response-box" id="response"><span class="empty-state">Click "Fetch via CDN" to make a request</span></div>
+    </div>
+
+    <!-- Log Panel -->
+    <div class="card full-width">
+      <h2><span class="icon">📋</span> Request Log</h2>
+      <ul class="log-list" id="log"></ul>
+    </div>
+  </div>
+
+  <script>
+    const GATEWAY = () => document.getElementById('gateway').value.replace(/\/+$/, '');
+
+    async function sendRequest() {
+      const path     = document.getElementById('path').value;
+      const url      = `${GATEWAY()}/cdn/${path}`;
+      const metaEl   = document.getElementById('meta');
+      const respEl   = document.getElementById('response');
+      const logEl    = document.getElementById('log');
+
+      respEl.innerHTML = '<span class="spinner"></span> Loading\u2026';
+      metaEl.innerHTML = '';
+
+      try {
+        const t0  = performance.now();
+        const res = await fetch(url);
+        const ms  = (performance.now() - t0).toFixed(1);
+
+        const cacheStatus = res.headers.get('X-Cache')   || '\u2014';
+        const edgeId      = res.headers.get('X-Edge-Id') || '\u2014';
+        const ct          = res.headers.get('Content-Type') || '';
+
+        // Badges
+        metaEl.innerHTML = `
+          <span class="badge ${cacheStatus === 'HIT' ? 'hit' : 'miss'}">${cacheStatus}</span>
+          <span class="badge edge">${edgeId}</span>
+          <span class="badge time">${ms} ms</span>
+        `;
+
+        // Body
+        const body = ct.includes('json') ? JSON.stringify(await res.json(), null, 2) : await res.text();
+        respEl.textContent = body;
+
+        // Log entry with color coding
+        const li = document.createElement('li');
+        li.classList.add(cacheStatus === 'HIT' ? 'log-hit' : 'log-miss');
+        li.textContent = `[${new Date().toLocaleTimeString()}] ${cacheStatus.padEnd(4)} | ${edgeId.padEnd(7)} | ${ms.padStart(6)} ms | /${path}`;
+        logEl.prepend(li);
+
+      } catch (err) {
+        respEl.textContent = `Error: ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>

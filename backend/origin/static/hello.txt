@@ -1,0 +1,3 @@
+Hello from the Origin Server!
+This is a sample text file served by LiteCDN.
+End-to-end connectivity test.
