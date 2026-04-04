@@ -1,0 +1,2 @@
+Welcome to LiteCDN production demo platform.
+This file is served from origin and can be cached by edge nodes.

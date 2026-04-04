@@ -1,0 +1,8 @@
+{
+  "project": "LiteCDN Production Demo",
+  "version": "1.0.0",
+  "items": [
+    "welcome.txt",
+    "catalog.json"
+  ]
+}

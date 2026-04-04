@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LiteCDN Testing Graph Report</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: #0f1116;
+      color: #e9edf5;
+    }
+    .wrap {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.5rem;
+    }
+    .meta {
+      color: #b8c0d4;
+      margin-bottom: 18px;
+      font-size: 0.9rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: #161b26;
+      border: 1px solid #2a3243;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      color: #ffd166;
+    }
+    .chart {
+      width: 100%;
+      height: 330px;
+    }
+    .full {
+      margin-top: 16px;
+      background: #161b26;
+      border: 1px solid #2a3243;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .full h2 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      color: #7bdff2;
+    }
+    #alphaBetaChart {
+      width: 100%;
+      height: 420px;
+    }
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>LiteCDN Experimental Graphs</h1>
+    <div class="meta">
+      Source metrics: /home/rocker2801/Coding/software_project/LiteCDN_new/LiteCDN/metrics.csv<br/>
+      Alpha/Beta trace: /home/rocker2801/Coding/software_project/LiteCDN_new/LiteCDN/testing/alpha_beta_trace.csv<br/>
+      Epsilon sweep: /home/rocker2801/Coding/software_project/LiteCDN_new/LiteCDN/testing/epsilon_sweep.csv
+    </div>
+
+    <div class="grid">
+      
+      <section class="card">
+        <h3>Average Latency (ms) | LRU</h3>
+        <div id="chart_latency_LRU" class="chart"></div>
+      </section>
+  
+      <section class="card">
+        <h3>Average Latency (ms) | Segmented (35-60-5)</h3>
+        <div id="chart_latency_Segmented__35_60_5_" class="chart"></div>
+      </section>
+  
+      <section class="card">
+        <h3>Load Variance | LRU</h3>
+        <div id="chart_variance_LRU" class="chart"></div>
+      </section>
+  
+      <section class="card">
+        <h3>Load Variance | Segmented (35-60-5)</h3>
+        <div id="chart_variance_Segmented__35_60_5_" class="chart"></div>
+      </section>
+  
+      <section class="card">
+        <h3>Hit Ratio (%) | LRU</h3>
+        <div id="chart_hitRatio_LRU" class="chart"></div>
+      </section>
+  
+      <section class="card">
+        <h3>Hit Ratio (%) | Segmented (35-60-5)</h3>
+        <div id="chart_hitRatio_Segmented__35_60_5_" class="chart"></div>
+      </section>
+  
+      <section class="card">
+        <h3>Evictions | LRU</h3>
+        <div id="chart_evictions_LRU" class="chart"></div>
+      </section>
+  
+      <section class="card">
+        <h3>Evictions | Segmented (35-60-5)</h3>
+        <div id="chart_evictions_Segmented__35_60_5_" class="chart"></div>
+      </section>
+  
+    </div>
+
+    <section class="full">
+      <h2>Alpha and Beta Variation: Alpha + Beta + Epsilon + Perturbation</h2>
+      <div id="alphaBetaChart"></div>
+    </section>
+
+    <section class="full">
+      <h2>Epsilon Variation: Alpha-Beta + Epsilon + Perturbation</h2>
+      <div class="grid">
+        
+      <section class="card">
+        <h3>Avg Latency (ms) | Epsilon Sweep</h3>
+        <div id="epsilonSweepChart1" class="chart"></div>
+      </section>
+  
+      <section class="card">
+        <h3>Load Variance | Epsilon Sweep</h3>
+        <div id="epsilonSweepChart2" class="chart"></div>
+      </section>
+  
+      <section class="card">
+        <h3>Hit Ratio (%) | Epsilon Sweep</h3>
+        <div id="epsilonSweepChart3" class="chart"></div>
+      </section>
+  
+      <section class="card">
+        <h3>Evictions | Epsilon Sweep</h3>
+        <div id="epsilonSweepChart4" class="chart"></div>
+      </section>
+  
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const charts = [{"id":"chart_latency_LRU","metricTitle":"Average Latency (ms)","cacheTitle":"LRU","x":["Round Robin","Normal Alpha-Beta","Alpha-Beta + Epsilon","Alpha-Beta + Eps + Perturb"],"y":[49.73,43.13,44.51,45.23]},{"id":"chart_latency_Segmented__35_60_5_","metricTitle":"Average Latency (ms)","cacheTitle":"Segmented (35-60-5)","x":["Round Robin","Normal Alpha-Beta","Alpha-Beta + Epsilon","Alpha-Beta + Eps + Perturb"],"y":[55.42,43.94,42.69,42.1]},{"id":"chart_variance_LRU","metricTitle":"Load Variance","cacheTitle":"LRU","x":["Round Robin","Normal Alpha-Beta","Alpha-Beta + Epsilon","Alpha-Beta + Eps + Perturb"],"y":[74.85,27.61,22.95,18.58]},{"id":"chart_variance_Segmented__35_60_5_","metricTitle":"Load Variance","cacheTitle":"Segmented (35-60-5)","x":["Round Robin","Normal Alpha-Beta","Alpha-Beta + Epsilon","Alpha-Beta + Eps + Perturb"],"y":[40.19,34,27.02,11.99]},{"id":"chart_hitRatio_LRU","metricTitle":"Hit Ratio (%)","cacheTitle":"LRU","x":["Round Robin","Normal Alpha-Beta","Alpha-Beta + Epsilon","Alpha-Beta + Eps + Perturb"],"y":[42.43,40.1,39.97,40.77]},{"id":"chart_hitRatio_Segmented__35_60_5_","metricTitle":"Hit Ratio (%)","cacheTitle":"Segmented (35-60-5)","x":["Round Robin","Normal Alpha-Beta","Alpha-Beta + Epsilon","Alpha-Beta + Eps + Perturb"],"y":[49.7,48.53,49.57,47.8]},{"id":"chart_evictions_LRU","metricTitle":"Evictions","cacheTitle":"LRU","x":["Round Robin","Normal Alpha-Beta","Alpha-Beta + Epsilon","Alpha-Beta + Eps + Perturb"],"y":[1612,1668,1679,1655]},{"id":"chart_evictions_Segmented__35_60_5_","metricTitle":"Evictions","cacheTitle":"Segmented (35-60-5)","x":["Round Robin","Normal Alpha-Beta","Alpha-Beta + Epsilon","Alpha-Beta + Eps + Perturb"],"y":[1364,1397,1380,1414]}];
+    const trace = {"x":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120],"alpha":[0.1625,0.1625,0.1704,0.2077,0.1625,0.1707,0.1625,0.2083,0.2215,0.2094,0.3217,0.4056,0.3847,0.4549,0.5469,0.5895,0.6658,0.7431,0.7468,0.8097,0.8375,0.8375,0.8375,0.8005,0.8375,0.7786,0.7792,0.8375,0.7903,0.7172,0.7863,0.7942,0.8124,0.8375,0.8375,0.7786,0.7816,0.6761,0.7809,0.7615,0.8369,0.8375,0.8371,0.8004,0.8375,0.8375,0.7676,0.7376,0.8375,0.8184,0.7975,0.8019,0.8375,0.8368,0.758,0.7558,0.8143,0.8375,0.8375,0.8375,0.7791,0.7782,0.7827,0.7674,0.8269,0.7833,0.8375,0.8375,0.8375,0.8293,0.8375,0.8287,0.7825,0.7942,0.8019,0.7149,0.7453,0.7392,0.7779,0.8375,0.8375,0.7991,0.749,0.77,0.7816,0.8375,0.8375,0.8144,0.8274,0.7953,0.8207,0.8078,0.7997,0.8375,0.8375,0.8075,0.787,0.7985,0.7365,0.7771,0.8148,0.8275,0.8375,0.8375,0.8142,0.8,0.739,0.7806,0.7185,0.7931,0.787,0.7713,0.7494,0.728,0.8053,0.7681,0.7908,0.7595,0.7116,0.811],"beta":[0.8375,0.8375,0.8296,0.7923,0.8375,0.8293,0.8375,0.7917,0.7785,0.7906,0.6783,0.5944,0.6153,0.5451,0.4531,0.4105,0.3342,0.2569,0.2532,0.1903,0.1625,0.1625,0.1625,0.1995,0.1625,0.2214,0.2208,0.1625,0.2097,0.2828,0.2137,0.2058,0.1876,0.1625,0.1625,0.2214,0.2184,0.3239,0.2191,0.2385,0.1631,0.1625,0.1629,0.1996,0.1625,0.1625,0.2324,0.2624,0.1625,0.1816,0.2025,0.1981,0.1625,0.1632,0.242,0.2442,0.1857,0.1625,0.1625,0.1625,0.2209,0.2218,0.2173,0.2326,0.1731,0.2167,0.1625,0.1625,0.1625,0.1707,0.1625,0.1713,0.2175,0.2058,0.1981,0.2851,0.2547,0.2608,0.2221,0.1625,0.1625,0.2009,0.251,0.23,0.2184,0.1625,0.1625,0.1856,0.1726,0.2047,0.1793,0.1922,0.2003,0.1625,0.1625,0.1925,0.213,0.2015,0.2635,0.2229,0.1852,0.1725,0.1625,0.1625,0.1858,0.2,0.261,0.2194,0.2815,0.2069,0.213,0.2287,0.2506,0.272,0.1947,0.2319,0.2092,0.2405,0.2884,0.189],"alphaTarget":[0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.0621,0.0953,0.2737,0.3779,0.3411,0.4472,0.5583,0.6265,0.6923,0.8084,0.8683,0.9115,0.9415,0.95,0.95,0.9446,0.9058,0.8913,0.9276,0.931,0.8844,0.8181,0.8731,0.8566,0.918,0.9459,0.95,0.9065,0.8347,0.7667,0.8603,0.9059,0.95,0.9405,0.9069,0.8925,0.9284,0.8963,0.8394,0.7763,0.95,0.9495,0.912,0.9418,0.95,0.95,0.8992,0.8261,0.899,0.933,0.95,0.95,0.931,0.8815,0.9208,0.9225,0.8771,0.9304,0.95,0.95,0.9479,0.8831,0.9341,0.95,0.95,0.9369,0.8686,0.7966,0.8327,0.8126,0.8905,0.927,0.95,0.8937,0.8249,0.8983,0.9324,0.95,0.95,0.95,0.9441,0.8729,0.9279,0.95,0.95,0.95,0.9474,0.8819,0.8318,0.8826,0.8621,0.9214,0.9482,0.95,0.95,0.95,0.9348,0.8594,0.8765,0.8395,0.7842,0.872,0.9141,0.882,0.8285,0.7683,0.8615,0.9067,0.8839,0.8347,0.7753,0.8661]};
+    const epsilonSweepCharts = [{"id":"epsilonSweepChart1","title":"Avg Latency (ms)","traces":[{"name":"LRU","x":[0.1,0.15,0.2,0.25,0.3],"y":[45.12,41.84,43.23,45.05,43.03]},{"name":"Segmented (35-60-5)","x":[0.1,0.15,0.2,0.25,0.3],"y":[40.31,40.78,43.05,45.8,46.65]}]},{"id":"epsilonSweepChart2","title":"Load Variance","traces":[{"name":"LRU","x":[0.1,0.15,0.2,0.25,0.3],"y":[15.52,15.81,10.65,8.44,14.51]},{"name":"Segmented (35-60-5)","x":[0.1,0.15,0.2,0.25,0.3],"y":[14.56,14.66,7.92,16.47,9.77]}]},{"id":"epsilonSweepChart3","title":"Hit Ratio (%)","traces":[{"name":"LRU","x":[0.1,0.15,0.2,0.25,0.3],"y":[41.08,41.08,42.08,40.08,40.67]},{"name":"Segmented (35-60-5)","x":[0.1,0.15,0.2,0.25,0.3],"y":[43.33,41.42,41.33,39.83,44.58]}]},{"id":"epsilonSweepChart4","title":"Evictions","traces":[{"name":"LRU","x":[0.1,0.15,0.2,0.25,0.3],"y":[605,606,593,613,605]},{"name":"Segmented (35-60-5)","x":[0.1,0.15,0.2,0.25,0.3],"y":[573,600,607,627,566]}]}];
+
+    charts.forEach((c) => {
+      Plotly.newPlot(c.id, [
+        {
+          type: 'bar',
+          x: c.x,
+          y: c.y,
+          marker: { color: '#f4a261' },
+          hovertemplate: '%{x}<br>%{y}<extra></extra>'
+        }
+      ], {
+        margin: { t: 10, r: 10, b: 90, l: 55 },
+        paper_bgcolor: '#161b26',
+        plot_bgcolor: '#111622',
+        font: { color: '#e9edf5' },
+        xaxis: { tickangle: -20 },
+        yaxis: { gridcolor: '#2b3244' }
+      }, { responsive: true, displaylogo: false });
+    });
+
+    if (trace && trace.x.length > 0) {
+      Plotly.newPlot('alphaBetaChart', [
+        {
+          type: 'scatter',
+          mode: 'lines',
+          name: 'alphaAdaptive',
+          x: trace.x,
+          y: trace.alpha,
+          line: { color: '#00d68f', width: 2 }
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          name: 'betaAdaptive',
+          x: trace.x,
+          y: trace.beta,
+          line: { color: '#ff6b6b', width: 2 }
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          name: 'alphaTarget',
+          x: trace.x,
+          y: trace.alphaTarget,
+          line: { color: '#7bdff2', width: 1.5, dash: 'dot' }
+        }
+      ], {
+        margin: { t: 10, r: 20, b: 45, l: 55 },
+        paper_bgcolor: '#161b26',
+        plot_bgcolor: '#111622',
+        font: { color: '#e9edf5' },
+        xaxis: { title: 'Request Step', gridcolor: '#2b3244' },
+        yaxis: { title: 'Weight Value', range: [0, 1], gridcolor: '#2b3244' },
+        legend: { orientation: 'h' }
+      }, { responsive: true, displaylogo: false });
+    } else {
+      const el = document.getElementById('alphaBetaChart');
+      el.innerHTML = '<div style="padding:16px;color:#c9d1e5">No alpha/beta trace data found. Run: npm run test:alpha-beta-trace</div>';
+    }
+
+    epsilonSweepCharts.forEach((c) => {
+      const plotlyTraces = c.traces.map((t) => ({
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: t.name,
+        x: t.x,
+        y: t.y
+      }));
+
+      Plotly.newPlot(c.id, plotlyTraces, {
+        margin: { t: 10, r: 10, b: 45, l: 55 },
+        paper_bgcolor: '#161b26',
+        plot_bgcolor: '#111622',
+        font: { color: '#e9edf5' },
+        xaxis: { title: 'epsilon', tickformat: '.2f', gridcolor: '#2b3244' },
+        yaxis: { gridcolor: '#2b3244' },
+        legend: { orientation: 'h' }
+      }, { responsive: true, displaylogo: false });
+    });
+  </script>
+</body>
+</html>

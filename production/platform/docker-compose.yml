@@ -1,0 +1,91 @@
+services:
+  control-plane:
+    build:
+      context: ./services/control-plane
+    environment:
+      - PORT=8080
+      - ORIGIN_BASE_URL=http://origin:4000
+      - EDGE_HEARTBEAT_TTL_MS=15000
+    networks:
+      - litecdn
+    ports:
+      - "8080:8080"
+
+  origin:
+    build:
+      context: ./services/origin
+    environment:
+      - PORT=4000
+      - DATA_DIR=/app/data
+    volumes:
+      - origin_data:/app/data
+    networks:
+      - litecdn
+    ports:
+      - "4000:4000"
+
+  gateway:
+    build:
+      context: ./services/gateway
+    environment:
+      - PORT=8081
+      - CONTROL_PLANE_URL=http://control-plane:8080
+      - REQUEST_TIMEOUT_MS=5000
+      - ROUTING_ALPHA=0.7
+      - ROUTING_BETA=0.3
+      - ROUTING_EPSILON=0.1
+      - ROUTING_MIN_ALPHA=0.05
+      - ROUTING_MAX_ALPHA=0.95
+      - ROUTING_VARIANCE_EPS=0.000001
+      - ROUTING_LOAD_SCALE_MS=80
+      - ROUTING_EWMA_LAMBDA=0.2
+      - ROUTING_LOAD_W_CURRENT=0.5
+      - ROUTING_LOAD_W_PREV=0.35
+      - ROUTING_LOAD_W_CACHE=0.15
+      - ROUTING_MAX_PERTURBATION=0.08
+      - ROUTING_PRIOR_BLEND=0.25
+    depends_on:
+      - control-plane
+      - origin
+    networks:
+      - litecdn
+    ports:
+      - "8081:8081"
+
+  edge:
+    build:
+      context: ./services/edge
+    environment:
+      - PORT=3001
+      - CONTROL_PLANE_URL=http://control-plane:8080
+      - EDGE_REGION=lab-region
+      - HEARTBEAT_INTERVAL_MS=3000
+      - CACHE_POLICY=SEGMENTED
+      - CACHE_MAX_ENTRIES=200
+      - CACHE_TTL_MS=600000
+    depends_on:
+      - control-plane
+      - origin
+    networks:
+      - litecdn
+
+  web-ui:
+    build:
+      context: ./web-ui
+    environment:
+      - PORT=8088
+      - GATEWAY_PUBLIC_URL=http://localhost:8081
+      - VERCEL_CONTROL_PLANE_URL=https://litecdnn.vercel.app
+    depends_on:
+      - gateway
+    networks:
+      - litecdn
+    ports:
+      - "8088:8088"
+
+volumes:
+  origin_data:
+
+networks:
+  litecdn:
+    driver: bridge

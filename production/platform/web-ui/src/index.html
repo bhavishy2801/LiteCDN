@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LiteCDN Production Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+  <div class="bg-shape bg-a"></div>
+  <div class="bg-shape bg-b"></div>
+
+  <header class="hero">
+    <h1>LiteCDN Control Terminal</h1>
+    <p>Bitcoin-inspired operations dashboard for origin delivery, edge behavior, and request visibility.</p>
+    <div class="hero-meta">
+      <span id="gatewayTarget" class="pill"></span>
+      <span id="vercelTarget" class="pill"></span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="card wide half-left">
+      <h2>Origin Content</h2>
+      <form id="uploadForm" class="control-row" enctype="multipart/form-data">
+        <input id="uploadFile" type="file" required />
+        <button class="btn" type="submit">Upload To Origin</button>
+      </form>
+      <div id="originFiles" class="list"></div>
+    </section>
+
+    <section class="card wide half-right request-card">
+      <h2>Request Simulation</h2>
+      <div class="control-row request-toolbar">
+        <input id="requestFile" value="" placeholder="filename or path" />
+        <button id="pickLatestBtn" class="btn ghost" type="button">Use Latest Uploaded</button>
+        <button id="requestBtn" class="btn">Send Request Via Gateway</button>
+        <button id="downloadFetchedBtn" class="btn ghost" type="button">Download Fetched File</button>
+      </div>
+      <div class="request-meta" id="requestMeta">
+        <div class="pill">status: -</div>
+        <div class="pill">type: -</div>
+        <div class="pill">size: -</div>
+        <div class="pill">edge: -</div>
+        <div class="pill">cache: -</div>
+        <div class="pill">latency: -</div>
+      </div>
+      <div class="request-viewer">
+        <div class="request-pane">
+          <h3>Rendered Preview</h3>
+          <div id="requestPreview" class="preview-surface">
+            <div class="empty-state">No response yet. Request a file to preview content.</div>
+          </div>
+        </div>
+        <div class="request-pane">
+          <h3>Raw / Headers</h3>
+          <pre id="requestResult" class="output"></pre>
+        </div>
+      </div>
+      <div class="recent-flow-header">
+        <h3>Recent Flow</h3>
+        <button id="refreshBtn" class="btn ghost" type="button">Clear & Refresh</button>
+      </div>
+      <div id="flowList" class="list"></div>
+    </section>
+
+    <section class="card wide half-left">
+      <h2>Routing & Cache Metrics</h2>
+      <div class="metrics-grid">
+        <div>
+          <h3>Strategy Usage</h3>
+          <div id="strategyBars"></div>
+        </div>
+        <div>
+          <h3>Cache Hit Ratio</h3>
+          <div id="cacheRatio"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card wide half-right server-controls-card">
+      <h2>Server State Controls</h2>
+      <div class="control-row">
+        <button id="originToggleBtn" class="btn">Toggle Origin</button>
+        <button id="enableAllEdgesBtn" class="btn">Enable All Edges</button>
+        <button id="disableAllEdgesBtn" class="btn ghost">Disable All Edges</button>
+      </div>
+      <div id="statusSummary" class="status-grid"></div>
+      <div id="edgeControls" class="edge-grid"></div>
+      <p class="note">Controls toggle live service states and status reflects current topology health.</p>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+  <script src="/assets/app.js"></script>
+</body>
+</html>

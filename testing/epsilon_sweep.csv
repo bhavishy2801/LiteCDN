@@ -1,0 +1,11 @@
+Epsilon,Caching,Routing,AvgLatency,LoadVariance,HitRatio,EvictionTotal
+0.10,LRU,Alpha-Beta + Eps + Perturb,45.12,15.52,41.08,605
+0.15,LRU,Alpha-Beta + Eps + Perturb,41.84,15.81,41.08,606
+0.20,LRU,Alpha-Beta + Eps + Perturb,43.23,10.65,42.08,593
+0.25,LRU,Alpha-Beta + Eps + Perturb,45.05,8.44,40.08,613
+0.30,LRU,Alpha-Beta + Eps + Perturb,43.03,14.51,40.67,605
+0.10,Segmented (35-60-5),Alpha-Beta + Eps + Perturb,40.31,14.56,43.33,573
+0.15,Segmented (35-60-5),Alpha-Beta + Eps + Perturb,40.78,14.66,41.42,600
+0.20,Segmented (35-60-5),Alpha-Beta + Eps + Perturb,43.05,7.92,41.33,607
+0.25,Segmented (35-60-5),Alpha-Beta + Eps + Perturb,45.80,16.47,39.83,627
+0.30,Segmented (35-60-5),Alpha-Beta + Eps + Perturb,46.65,9.77,44.58,566

@@ -17,7 +17,15 @@
     "test:edge": "node -e \"const tests = require('./testing/unitTests.js'); tests.testEdgeFunctions().then(() => process.exit(0));\"",
     "test:origin": "node -e \"const tests = require('./testing/unitTests.js'); tests.testOriginFunctions().then(() => process.exit(0));\"",
     "test:routing": "node -e \"const tests = require('./testing/unitTests.js'); tests.testRoutingFunctions().then(() => process.exit(0));\"",
-    "test:api": "node -e \"const tests = require('./testing/unitTests.js'); tests.testAPIFunctions().then(() => process.exit(0));\""
+    "test:api": "node -e \"const tests = require('./testing/unitTests.js'); tests.testAPIFunctions().then(() => process.exit(0));\"",
+    "test:alpha-beta-trace": "node testing/captureAlphaBetaTrace.js",
+    "test:epsilon-sweep": "node testing/runEpsilonSweep.js",
+    "test:render-graphs": "node testing/renderGraphs.js",
+    "prod:up": "bash scripts/prod-runtime.sh up",
+    "prod:scale": "bash scripts/prod-runtime.sh scale ${EDGE_REPLICAS:-6}",
+    "prod:down": "bash scripts/prod-runtime.sh down",
+    "prod:ps": "bash scripts/prod-runtime.sh ps",
+    "prod:logs": "bash scripts/prod-runtime.sh logs"
   },
   "keywords": [
     "cdn",

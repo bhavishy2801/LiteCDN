@@ -1,0 +1,9 @@
+Caching,Routing,AvgLatency,LoadVariance,HitRatio,EvictionTotal
+LRU,Round Robin,49.73,74.85,42.43,1612
+LRU,Normal Alpha-Beta,43.13,27.61,40.10,1668
+LRU,Alpha-Beta + Epsilon,44.51,22.95,39.97,1679
+LRU,Alpha-Beta + Eps + Perturb,45.23,18.58,40.77,1655
+Segmented (35-60-5),Round Robin,55.42,40.19,49.70,1364
+Segmented (35-60-5),Normal Alpha-Beta,43.94,34.00,48.53,1397
+Segmented (35-60-5),Alpha-Beta + Epsilon,42.69,27.02,49.57,1380
+Segmented (35-60-5),Alpha-Beta + Eps + Perturb,42.10,11.99,47.80,1414

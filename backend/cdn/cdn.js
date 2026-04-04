@@ -126,7 +126,9 @@ app.get('/cdn/content/:file', async (req, res) => {
     });
   } catch (err) {
     inFlightRequests[targetEdge.id] = Math.max(0, inFlightRequests[targetEdge.id] - cost);
-    res.status(500).json({ error: 'Edge fetch failed' });
+    const status = err.response?.status || 500;
+    const detail = err.response?.data || err.message || 'Edge fetch failed';
+    res.status(status).json({ error: 'Edge fetch failed', detail, edge: targetEdge.id });
   }
 });
 
@@ -137,6 +139,11 @@ app.get('/status', (req, res) => {
   res.json({
     status: 'UP',
     edges: config.edges,
-    metrics: edgeMetrics
+    metrics: edgeMetrics,
+    routing: {
+      mode: routingService.mode,
+      options: routingService.options,
+      diagnostics: routingService.getDiagnostics ? routingService.getDiagnostics() : null
+    }
   });
 });
