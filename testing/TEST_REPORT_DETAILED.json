@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-25T22:54:43.185Z",
+  "timestamp": "2026-03-30T04:38:55.127Z",
   "summary": {
-    "total": 19,
-    "passed": 19,
+    "total": 26,
+    "passed": 26,
     "failed": 0,
     "passRate": 100
   },
@@ -99,7 +99,8 @@
                   "port": 3001,
                   "url": "http://localhost:3001",
                   "latency": 0,
-                  "load": 0
+                  "load": 0.44,
+                  "loadNormalized": 0.0044
                 },
                 {
                   "id": "Edge-2",
@@ -107,7 +108,8 @@
                   "port": 3002,
                   "url": "http://localhost:3002",
                   "latency": 0,
-                  "load": 0
+                  "load": 0.44,
+                  "loadNormalized": 0.0044
                 },
                 {
                   "id": "Edge-3",
@@ -115,7 +117,8 @@
                   "port": 3003,
                   "url": "http://localhost:3003",
                   "latency": 0,
-                  "load": 0
+                  "load": 0.44,
+                  "loadNormalized": 0.0044
                 }
               ]
             },
@@ -131,7 +134,8 @@
                 "port": 3001,
                 "url": "http://localhost:3001",
                 "latency": 0,
-                "load": 0
+                "load": 0.44,
+                "loadNormalized": 0.0044
               }
             },
             "passed": true
@@ -146,7 +150,8 @@
                 "port": 3002,
                 "url": "http://localhost:3002",
                 "latency": 0,
-                "load": 0
+                "load": 0.44,
+                "loadNormalized": 0.0044
               }
             },
             "passed": true
@@ -161,7 +166,8 @@
                 "port": 3003,
                 "url": "http://localhost:3003",
                 "latency": 0,
-                "load": 0
+                "load": 0.44,
+                "loadNormalized": 0.0044
               }
             },
             "passed": true
@@ -218,16 +224,40 @@
         "assertions": [
           {
             "condition": true,
+            "message": "Edge-1 should receive exactly 4 requests, got 4",
+            "context": {
+              "distribution": {
+                "Edge-1": 4,
+                "Edge-2": 4,
+                "Edge-3": 4
+              },
+              "sequence": [
+                "Edge-1",
+                "Edge-2",
+                "Edge-3",
+                "Edge-1",
+                "Edge-2",
+                "Edge-3",
+                "Edge-1",
+                "Edge-2",
+                "Edge-3",
+                "Edge-1",
+                "Edge-2",
+                "Edge-3"
+              ]
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
             "message": "Edge-2 should receive exactly 4 requests, got 4",
             "context": {
               "distribution": {
+                "Edge-1": 4,
                 "Edge-2": 4,
-                "Edge-3": 4,
-                "Edge-1": 4
+                "Edge-3": 4
               },
               "sequence": [
-                "Edge-2",
-                "Edge-3",
                 "Edge-1",
                 "Edge-2",
                 "Edge-3",
@@ -237,7 +267,9 @@
                 "Edge-1",
                 "Edge-2",
                 "Edge-3",
-                "Edge-1"
+                "Edge-1",
+                "Edge-2",
+                "Edge-3"
               ]
             },
             "passed": true
@@ -247,37 +279,12 @@
             "message": "Edge-3 should receive exactly 4 requests, got 4",
             "context": {
               "distribution": {
+                "Edge-1": 4,
                 "Edge-2": 4,
-                "Edge-3": 4,
-                "Edge-1": 4
+                "Edge-3": 4
               },
               "sequence": [
-                "Edge-2",
-                "Edge-3",
                 "Edge-1",
-                "Edge-2",
-                "Edge-3",
-                "Edge-1",
-                "Edge-2",
-                "Edge-3",
-                "Edge-1",
-                "Edge-2",
-                "Edge-3",
-                "Edge-1"
-              ]
-            },
-            "passed": true
-          },
-          {
-            "condition": true,
-            "message": "Edge-1 should receive exactly 4 requests, got 4",
-            "context": {
-              "distribution": {
-                "Edge-2": 4,
-                "Edge-3": 4,
-                "Edge-1": 4
-              },
-              "sequence": [
                 "Edge-2",
                 "Edge-3",
                 "Edge-1",
@@ -288,8 +295,7 @@
                 "Edge-3",
                 "Edge-1",
                 "Edge-2",
-                "Edge-3",
-                "Edge-1"
+                "Edge-3"
               ]
             },
             "passed": true
@@ -297,17 +303,15 @@
           {
             "condition": true,
             "message": "Round-robin pattern should repeat consistently (cycles 1-2)",
-            "expected": "Edge-2,Edge-3,Edge-1",
-            "actual": "Edge-2,Edge-3,Edge-1",
+            "expected": "Edge-1,Edge-2,Edge-3",
+            "actual": "Edge-1,Edge-2,Edge-3",
             "context": {
               "distribution": {
+                "Edge-1": 4,
                 "Edge-2": 4,
-                "Edge-3": 4,
-                "Edge-1": 4
+                "Edge-3": 4
               },
               "sequence": [
-                "Edge-2",
-                "Edge-3",
                 "Edge-1",
                 "Edge-2",
                 "Edge-3",
@@ -317,27 +321,27 @@
                 "Edge-1",
                 "Edge-2",
                 "Edge-3",
-                "Edge-1"
+                "Edge-1",
+                "Edge-2",
+                "Edge-3"
               ],
-              "pattern1": "Edge-2,Edge-3,Edge-1",
-              "pattern2": "Edge-2,Edge-3,Edge-1"
+              "pattern1": "Edge-1,Edge-2,Edge-3",
+              "pattern2": "Edge-1,Edge-2,Edge-3"
             },
             "passed": true
           },
           {
             "condition": true,
             "message": "Round-robin pattern should repeat consistently (cycles 1-3)",
-            "expected": "Edge-2,Edge-3,Edge-1",
-            "actual": "Edge-2,Edge-3,Edge-1",
+            "expected": "Edge-1,Edge-2,Edge-3",
+            "actual": "Edge-1,Edge-2,Edge-3",
             "context": {
               "distribution": {
+                "Edge-1": 4,
                 "Edge-2": 4,
-                "Edge-3": 4,
-                "Edge-1": 4
+                "Edge-3": 4
               },
               "sequence": [
-                "Edge-2",
-                "Edge-3",
                 "Edge-1",
                 "Edge-2",
                 "Edge-3",
@@ -347,10 +351,12 @@
                 "Edge-1",
                 "Edge-2",
                 "Edge-3",
-                "Edge-1"
+                "Edge-1",
+                "Edge-2",
+                "Edge-3"
               ],
-              "pattern1": "Edge-2,Edge-3,Edge-1",
-              "pattern3": "Edge-2,Edge-3,Edge-1"
+              "pattern1": "Edge-1,Edge-2,Edge-3",
+              "pattern3": "Edge-1,Edge-2,Edge-3"
             },
             "passed": true
           }
@@ -553,8 +559,9 @@
                 "host": "localhost",
                 "port": 3001,
                 "url": "http://localhost:3001",
-                "latency": 0,
-                "load": 0
+                "latency": 34.5888,
+                "load": 0.44,
+                "loadNormalized": 0.0044
               }
             },
             "passed": true
@@ -568,8 +575,9 @@
                 "host": "localhost",
                 "port": 3001,
                 "url": "http://localhost:3001",
-                "latency": 0,
-                "load": 0
+                "latency": 34.5888,
+                "load": 0.44,
+                "loadNormalized": 0.0044
               }
             },
             "passed": true
@@ -583,8 +591,9 @@
                 "host": "localhost",
                 "port": 3002,
                 "url": "http://localhost:3002",
-                "latency": 0,
-                "load": 0
+                "latency": 22.48,
+                "load": 0.44,
+                "loadNormalized": 0.0044
               }
             },
             "passed": true
@@ -598,8 +607,9 @@
                 "host": "localhost",
                 "port": 3002,
                 "url": "http://localhost:3002",
-                "latency": 0,
-                "load": 0
+                "latency": 22.48,
+                "load": 0.44,
+                "loadNormalized": 0.0044
               }
             },
             "passed": true
@@ -613,8 +623,9 @@
                 "host": "localhost",
                 "port": 3003,
                 "url": "http://localhost:3003",
-                "latency": 0,
-                "load": 0
+                "latency": 29.648000000000003,
+                "load": 0.44,
+                "loadNormalized": 0.0044
               }
             },
             "passed": true
@@ -628,8 +639,9 @@
                 "host": "localhost",
                 "port": 3003,
                 "url": "http://localhost:3003",
-                "latency": 0,
-                "load": 0
+                "latency": 29.648000000000003,
+                "load": 0.44,
+                "loadNormalized": 0.0044
               }
             },
             "passed": true
@@ -643,15 +655,13 @@
           {
             "condition": true,
             "message": "Round-robin pattern should repeat consistently (cycles 1-2)",
-            "expected": "Edge-2,Edge-3,Edge-1",
-            "actual": "Edge-2,Edge-3,Edge-1",
+            "expected": "Edge-1,Edge-2,Edge-3",
+            "actual": "Edge-1,Edge-2,Edge-3",
             "context": {
-              "pattern1": "Edge-2,Edge-3,Edge-1",
-              "pattern2": "Edge-2,Edge-3,Edge-1",
-              "pattern3": "Edge-2,Edge-3,Edge-1",
+              "pattern1": "Edge-1,Edge-2,Edge-3",
+              "pattern2": "Edge-1,Edge-2,Edge-3",
+              "pattern3": "Edge-1,Edge-2,Edge-3",
               "fullSequence": [
-                "Edge-2",
-                "Edge-3",
                 "Edge-1",
                 "Edge-2",
                 "Edge-3",
@@ -661,7 +671,9 @@
                 "Edge-1",
                 "Edge-2",
                 "Edge-3",
-                "Edge-1"
+                "Edge-1",
+                "Edge-2",
+                "Edge-3"
               ]
             },
             "passed": true
@@ -669,40 +681,13 @@
           {
             "condition": true,
             "message": "Round-robin pattern should repeat consistently (cycles 1-3)",
-            "expected": "Edge-2,Edge-3,Edge-1",
-            "actual": "Edge-2,Edge-3,Edge-1",
+            "expected": "Edge-1,Edge-2,Edge-3",
+            "actual": "Edge-1,Edge-2,Edge-3",
             "context": {
-              "pattern1": "Edge-2,Edge-3,Edge-1",
-              "pattern3": "Edge-2,Edge-3,Edge-1",
+              "pattern1": "Edge-1,Edge-2,Edge-3",
+              "pattern3": "Edge-1,Edge-2,Edge-3",
               "fullSequence": [
-                "Edge-2",
-                "Edge-3",
                 "Edge-1",
-                "Edge-2",
-                "Edge-3",
-                "Edge-1",
-                "Edge-2",
-                "Edge-3",
-                "Edge-1",
-                "Edge-2",
-                "Edge-3",
-                "Edge-1"
-              ]
-            },
-            "passed": true
-          },
-          {
-            "condition": true,
-            "message": "Edge-2 should receive exactly 4 out of 12 requests",
-            "expected": 4,
-            "actual": 4,
-            "context": {
-              "distribution": {
-                "Edge-2": 4,
-                "Edge-3": 4,
-                "Edge-1": 4
-              },
-              "sequence": [
                 "Edge-2",
                 "Edge-3",
                 "Edge-1",
@@ -713,36 +698,7 @@
                 "Edge-3",
                 "Edge-1",
                 "Edge-2",
-                "Edge-3",
-                "Edge-1"
-              ]
-            },
-            "passed": true
-          },
-          {
-            "condition": true,
-            "message": "Edge-3 should receive exactly 4 out of 12 requests",
-            "expected": 4,
-            "actual": 4,
-            "context": {
-              "distribution": {
-                "Edge-2": 4,
-                "Edge-3": 4,
-                "Edge-1": 4
-              },
-              "sequence": [
-                "Edge-2",
-                "Edge-3",
-                "Edge-1",
-                "Edge-2",
-                "Edge-3",
-                "Edge-1",
-                "Edge-2",
-                "Edge-3",
-                "Edge-1",
-                "Edge-2",
-                "Edge-3",
-                "Edge-1"
+                "Edge-3"
               ]
             },
             "passed": true
@@ -754,13 +710,11 @@
             "actual": 4,
             "context": {
               "distribution": {
+                "Edge-1": 4,
                 "Edge-2": 4,
-                "Edge-3": 4,
-                "Edge-1": 4
+                "Edge-3": 4
               },
               "sequence": [
-                "Edge-2",
-                "Edge-3",
                 "Edge-1",
                 "Edge-2",
                 "Edge-3",
@@ -770,7 +724,65 @@
                 "Edge-1",
                 "Edge-2",
                 "Edge-3",
-                "Edge-1"
+                "Edge-1",
+                "Edge-2",
+                "Edge-3"
+              ]
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge-2 should receive exactly 4 out of 12 requests",
+            "expected": 4,
+            "actual": 4,
+            "context": {
+              "distribution": {
+                "Edge-1": 4,
+                "Edge-2": 4,
+                "Edge-3": 4
+              },
+              "sequence": [
+                "Edge-1",
+                "Edge-2",
+                "Edge-3",
+                "Edge-1",
+                "Edge-2",
+                "Edge-3",
+                "Edge-1",
+                "Edge-2",
+                "Edge-3",
+                "Edge-1",
+                "Edge-2",
+                "Edge-3"
+              ]
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge-3 should receive exactly 4 out of 12 requests",
+            "expected": 4,
+            "actual": 4,
+            "context": {
+              "distribution": {
+                "Edge-1": 4,
+                "Edge-2": 4,
+                "Edge-3": 4
+              },
+              "sequence": [
+                "Edge-1",
+                "Edge-2",
+                "Edge-3",
+                "Edge-1",
+                "Edge-2",
+                "Edge-3",
+                "Edge-1",
+                "Edge-2",
+                "Edge-3",
+                "Edge-1",
+                "Edge-2",
+                "Edge-3"
               ]
             },
             "passed": true
@@ -791,24 +803,27 @@
                   "host": "localhost",
                   "port": 3001,
                   "url": "http://localhost:3001",
-                  "latency": 0,
-                  "load": 0
+                  "latency": 15.841172480000004,
+                  "load": 0.44,
+                  "loadNormalized": 0.0044
                 },
                 {
                   "id": "Edge-2",
                   "host": "localhost",
                   "port": 3002,
                   "url": "http://localhost:3002",
-                  "latency": 0,
-                  "load": 0
+                  "latency": 10.881408000000002,
+                  "load": 0.44,
+                  "loadNormalized": 0.0044
                 },
                 {
                   "id": "Edge-3",
                   "host": "localhost",
                   "port": 3003,
                   "url": "http://localhost:3003",
-                  "latency": 0,
-                  "load": 0
+                  "latency": 14.060620800000002,
+                  "load": 0.44,
+                  "loadNormalized": 0.0044
                 }
               ]
             },
@@ -893,9 +908,9 @@
             "message": "Index should be 0-2",
             "context": {
               "indices": [
-                1,
-                1,
-                1
+                0,
+                0,
+                0
               ]
             },
             "passed": true
@@ -905,10 +920,270 @@
             "message": "Index should be 0-2",
             "context": {
               "indices": [
-                1,
-                1,
-                1
+                0,
+                0,
+                0
               ]
+            },
+            "passed": true
+          }
+        ]
+      },
+      {
+        "moduleName": "routing.js",
+        "testName": "updateLoad - ingests normalized edge load and scales to ms",
+        "assertions": [
+          {
+            "condition": true,
+            "message": "Routing metrics endpoint should return 200 (Status: 200)",
+            "expected": 200,
+            "actual": 200,
+            "context": {},
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Routing metrics should include edge list",
+            "context": {
+              "response": {
+                "mode": "alpha-beta",
+                "alpha": 0.55,
+                "beta": 0.44999999999999996,
+                "loadScaleMs": 100,
+                "edges": [
+                  {
+                    "id": "Edge-1",
+                    "latencyMs": 13.272937984000004,
+                    "loadNormalized": 0.0283,
+                    "loadScoreMs": 2.83,
+                    "score": 8.573615891200003
+                  },
+                  {
+                    "id": "Edge-2",
+                    "latencyMs": 9.105126400000003,
+                    "loadNormalized": 0.0247,
+                    "loadScoreMs": 2.4699999999999998,
+                    "score": 6.119319520000001
+                  },
+                  {
+                    "id": "Edge-3",
+                    "latencyMs": 14.060620800000002,
+                    "loadNormalized": 0.0239,
+                    "loadScoreMs": 2.39,
+                    "score": 8.808841440000002
+                  }
+                ]
+              }
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Routing metrics should include loadScaleMs",
+            "context": {},
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Each routing metric edge should include id",
+            "context": {
+              "edge": {
+                "id": "Edge-1",
+                "latencyMs": 13.272937984000004,
+                "loadNormalized": 0.0283,
+                "loadScoreMs": 2.83,
+                "score": 8.573615891200003
+              }
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge-1 should expose loadNormalized",
+            "context": {
+              "edge": {
+                "id": "Edge-1",
+                "latencyMs": 13.272937984000004,
+                "loadNormalized": 0.0283,
+                "loadScoreMs": 2.83,
+                "score": 8.573615891200003
+              }
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge-1 loadNormalized should be in [0,1]",
+            "context": {
+              "edge": {
+                "id": "Edge-1",
+                "latencyMs": 13.272937984000004,
+                "loadNormalized": 0.0283,
+                "loadScoreMs": 2.83,
+                "score": 8.573615891200003
+              }
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge-1 should expose loadScoreMs",
+            "context": {
+              "edge": {
+                "id": "Edge-1",
+                "latencyMs": 13.272937984000004,
+                "loadNormalized": 0.0283,
+                "loadScoreMs": 2.83,
+                "score": 8.573615891200003
+              }
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge-1 loadScoreMs should equal loadNormalized * loadScaleMs",
+            "context": {
+              "loadNormalized": 0.0283,
+              "loadScaleMs": 100,
+              "loadScoreMs": 2.83,
+              "expectedLoadScore": 2.83,
+              "delta": 0
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Each routing metric edge should include id",
+            "context": {
+              "edge": {
+                "id": "Edge-2",
+                "latencyMs": 9.105126400000003,
+                "loadNormalized": 0.0247,
+                "loadScoreMs": 2.4699999999999998,
+                "score": 6.119319520000001
+              }
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge-2 should expose loadNormalized",
+            "context": {
+              "edge": {
+                "id": "Edge-2",
+                "latencyMs": 9.105126400000003,
+                "loadNormalized": 0.0247,
+                "loadScoreMs": 2.4699999999999998,
+                "score": 6.119319520000001
+              }
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge-2 loadNormalized should be in [0,1]",
+            "context": {
+              "edge": {
+                "id": "Edge-2",
+                "latencyMs": 9.105126400000003,
+                "loadNormalized": 0.0247,
+                "loadScoreMs": 2.4699999999999998,
+                "score": 6.119319520000001
+              }
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge-2 should expose loadScoreMs",
+            "context": {
+              "edge": {
+                "id": "Edge-2",
+                "latencyMs": 9.105126400000003,
+                "loadNormalized": 0.0247,
+                "loadScoreMs": 2.4699999999999998,
+                "score": 6.119319520000001
+              }
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge-2 loadScoreMs should equal loadNormalized * loadScaleMs",
+            "context": {
+              "loadNormalized": 0.0247,
+              "loadScaleMs": 100,
+              "loadScoreMs": 2.4699999999999998,
+              "expectedLoadScore": 2.4699999999999998,
+              "delta": 0
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Each routing metric edge should include id",
+            "context": {
+              "edge": {
+                "id": "Edge-3",
+                "latencyMs": 14.060620800000002,
+                "loadNormalized": 0.0239,
+                "loadScoreMs": 2.39,
+                "score": 8.808841440000002
+              }
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge-3 should expose loadNormalized",
+            "context": {
+              "edge": {
+                "id": "Edge-3",
+                "latencyMs": 14.060620800000002,
+                "loadNormalized": 0.0239,
+                "loadScoreMs": 2.39,
+                "score": 8.808841440000002
+              }
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge-3 loadNormalized should be in [0,1]",
+            "context": {
+              "edge": {
+                "id": "Edge-3",
+                "latencyMs": 14.060620800000002,
+                "loadNormalized": 0.0239,
+                "loadScoreMs": 2.39,
+                "score": 8.808841440000002
+              }
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge-3 should expose loadScoreMs",
+            "context": {
+              "edge": {
+                "id": "Edge-3",
+                "latencyMs": 14.060620800000002,
+                "loadNormalized": 0.0239,
+                "loadScoreMs": 2.39,
+                "score": 8.808841440000002
+              }
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge-3 loadScoreMs should equal loadNormalized * loadScaleMs",
+            "context": {
+              "loadNormalized": 0.0239,
+              "loadScaleMs": 100,
+              "loadScoreMs": 2.39,
+              "expectedLoadScore": 2.39,
+              "delta": 0
             },
             "passed": true
           }
@@ -933,9 +1208,9 @@
               "failureRequests": 0,
               "successPercent": "100.0",
               "avgPerEdge": "33.33",
-              "min": 33,
-              "max": 34,
-              "imbalancePercent": 3
+              "min": 10,
+              "max": 51,
+              "imbalancePercent": 123
             },
             "message": "Response should have summary",
             "context": {},
@@ -953,9 +1228,9 @@
                 "failureRequests": 0,
                 "successPercent": "100.0",
                 "avgPerEdge": "33.33",
-                "min": 33,
-                "max": 34,
-                "imbalancePercent": 3
+                "min": 10,
+                "max": 51,
+                "imbalancePercent": 123
               }
             },
             "passed": true
@@ -1029,6 +1304,7 @@
             "message": "Response should have sequence array",
             "context": {
               "response": {
+                "mode": "round-robin",
                 "expected": [
                   "Edge-1",
                   "Edge-2",
@@ -1089,6 +1365,238 @@
                 "Edge-2",
                 "Edge-3"
               ]
+            },
+            "passed": true
+          }
+        ]
+      },
+      {
+        "moduleName": "cache",
+        "testName": "Multi-edge cache coordination - each edge maintains separate cache",
+        "assertions": [
+          {
+            "condition": true,
+            "message": "Should test 3 edges",
+            "context": {
+              "cacheStatuses": [
+                "HIT",
+                "HIT",
+                "HIT"
+              ]
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge 1 should return HIT or MISS",
+            "context": {
+              "status": "HIT",
+              "edgeIndex": 1
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge 2 should return HIT or MISS",
+            "context": {
+              "status": "HIT",
+              "edgeIndex": 2
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Edge 3 should return HIT or MISS",
+            "context": {
+              "status": "HIT",
+              "edgeIndex": 3
+            },
+            "passed": true
+          }
+        ]
+      },
+      {
+        "moduleName": "cache",
+        "testName": "Cache hit rate - improves with repeated requests to same edge",
+        "assertions": [
+          {
+            "condition": true,
+            "message": "Should have cache HITs after initial request",
+            "context": {
+              "results": [
+                "HIT",
+                "HIT",
+                "HIT",
+                "HIT",
+                "HIT",
+                "HIT",
+                "HIT",
+                "HIT",
+                "HIT",
+                "HIT"
+              ],
+              "hits": 10,
+              "misses": 0,
+              "hitRate": "100.0%"
+            },
+            "passed": true
+          }
+        ]
+      },
+      {
+        "moduleName": "cache",
+        "testName": "Cache consistency - same file retrieved consistently through gateway",
+        "assertions": [
+          {
+            "condition": true,
+            "message": "All responses should have same content length",
+            "expected": 1,
+            "actual": 1,
+            "context": {
+              "results": [
+                {
+                  "edgeId": "Edge-2",
+                  "cacheStatus": "HIT",
+                  "contentLength": 106
+                },
+                {
+                  "edgeId": "Edge-2",
+                  "cacheStatus": "HIT",
+                  "contentLength": 106
+                },
+                {
+                  "edgeId": "Edge-2",
+                  "cacheStatus": "HIT",
+                  "contentLength": 106
+                },
+                {
+                  "edgeId": "Edge-2",
+                  "cacheStatus": "HIT",
+                  "contentLength": 106
+                },
+                {
+                  "edgeId": "Edge-1",
+                  "cacheStatus": "HIT",
+                  "contentLength": 106
+                },
+                {
+                  "edgeId": "Edge-2",
+                  "cacheStatus": "HIT",
+                  "contentLength": 106
+                }
+              ],
+              "uniqueLengths": [
+                106
+              ]
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Should distribute across one or more edges",
+            "context": {
+              "edgesHit": [
+                "Edge-2",
+                "Edge-1"
+              ],
+              "distribution": {
+                "Edge-2": 5,
+                "Edge-1": 1
+              }
+            },
+            "passed": true
+          }
+        ]
+      },
+      {
+        "moduleName": "routing.js",
+        "testName": "Alpha-beta routing - selects edges based on combined latency and load",
+        "assertions": [
+          {
+            "condition": true,
+            "message": "Should use at least 1 edge",
+            "context": {
+              "distribution": {
+                "Edge-1": 3,
+                "Edge-2": 12
+              },
+              "uniqueEdges": 2
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "No single edge should receive all requests",
+            "context": {
+              "distribution": {
+                "Edge-1": 3,
+                "Edge-2": 12
+              },
+              "maxRequests": 12
+            },
+            "passed": true
+          }
+        ]
+      },
+      {
+        "moduleName": "routing.js",
+        "testName": "Epsilon-greedy - explores alternative edges probabilistically",
+        "assertions": [
+          {
+            "condition": true,
+            "message": "Should explore different edges",
+            "context": {
+              "uniqueEdges": [
+                "Edge-2",
+                "Edge-1"
+              ],
+              "sequenceLength": 30
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Epsilon-greedy exploration observed",
+            "context": {
+              "distribution": {
+                "Edge-2": 18,
+                "Edge-1": 12
+              },
+              "uniqueEdgesCount": 2
+            },
+            "passed": true
+          }
+        ]
+      },
+      {
+        "moduleName": "routing.js",
+        "testName": "Mode switching - can switch between round-robin and alpha-beta",
+        "assertions": [
+          {
+            "condition": true,
+            "message": "Should have a valid routing mode",
+            "context": {
+              "mode": "alpha-beta"
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Should switch to round-robin mode",
+            "expected": "round-robin",
+            "actual": "round-robin",
+            "context": {
+              "mode": "round-robin"
+            },
+            "passed": true
+          },
+          {
+            "condition": true,
+            "message": "Should switch back to alpha-beta mode",
+            "expected": "alpha-beta",
+            "actual": "alpha-beta",
+            "context": {
+              "mode": "alpha-beta"
             },
             "passed": true
           }

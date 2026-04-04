@@ -1,110 +1,64 @@
-/**
- * ============================================================
- *  LiteCDN – Routing Service
- * ============================================================
- *  Implements a **stateful Round-Robin** strategy to distribute
- *  incoming requests across the registered Edge Servers.
- *
- *  Current features:
- *    • Pure round-robin with scoring (latency and load).
- *    • Edge list is static (loaded from config at startup).
- *    • Uses alpha and beta weighting for score calculation.
- *
- *  Public API
- *  ----------
- *  routeRequest(url : String)          →  Main request handler, returns EdgeServer
- *  selectEdge(epsilon : float)          →  Selects edge via round-robin strategy
- *  selectEdgeServer(region : String)    →  Selects edge for a specific region
- *  validateRequest(url : String)        →  Validates request URL
- *  getEdgeList()                        →  Returns the full edge list
- *  getCurrentIndex()                    →  Returns current RR index (debug)
- * ============================================================
- */
-
-const config = require('../config');
-
 class RoutingService {
-  /**
-   * @param {Array} edges – array of { id, host, port } objects.
-   *                        Defaults to the list in config.js.
-   */
-  constructor(edges = config.edges) {
-    this.edges = edges.map((e) => ({
-      ...e,
-      url: `http://${e.host}:${e.port}`,
-      latency: 0,    // Track latency for scoring
-      load: 0,       // Track load for scoring
-    }));
-
-    // ── Weighting Parameters ───────────────────────────────
-    this.alpha = 0.5;  // Weight for latency in score calculation
-    this.beta = 0.5;   // Weight for load in score calculation
-
-    // ── Round-Robin Index ──────────────────────────────────
-    //    Points to the *last* edge that was selected.
-    //    selectEdge() advances it before returning.
-    this._currentIndex = -1;
-
-    console.log('[RoutingService] Initialised with edges:');
-    this.edges.forEach((e) => console.log(`  → ${e.id}  ${e.url}`));
+  constructor(edges) {
+    this.edges = edges;
+    this.mode = 'round-robin';
+    this.options = { alpha: 1, beta: 0, epsilon: 0, perturb: false };
+    this.currentIndex = 0;
   }
 
-  /**
-   * Validate the incoming request URL
-   * @param {string} url - Request URL to validate
-   * @returns {boolean} True if URL is valid
-   */
-  validateRequest(url) {
-    if (!url || typeof url !== 'string') {
-      console.warn('[RoutingService] Invalid request URL:', url);
-      return false;
+  setMode(mode, options = {}) {
+    if (!['round-robin', 'alpha-beta'].includes(mode)) {
+      throw new Error(`Unsupported mode: ${mode}`);
     }
-    return true;
+    this.mode = mode;
+    this.options = { ...this.options, ...options };
+    this.currentIndex = 0;
   }
 
-  /**
-   * Select an edge server for a specific region
-   * @param {string} region - Target region (optional, not yet used)
-   * @returns {{ id: string, host: string, port: number, url: string }}
-   */
-  selectEdgeServer(region = null) {
-    // Currently just uses round-robin; can be extended for region-awareness
-    return this.selectEdge();
-  }
+  route(req, edgeMetrics, inFlight = {}) {
+    const available = this.edges.filter((e) => edgeMetrics[e.id]?.status === 'UP');
+    if (available.length === 0) return null;
 
-  /**
-   * Select the next Edge Server using round-robin strategy.
-   * @param {number} epsilon - Epsilon parameter (not used in current round-robin)
-   * @returns {{ id: string, host: string, port: number, url: string }}
-   */
-  selectEdge(epsilon = 0) {
-    // Advance index, wrapping around to 0 at the end
-    this._currentIndex = (this._currentIndex + 1) % this.edges.length;
-    const selected = this.edges[this._currentIndex];
-    console.log(`[RoutingService] 🔀 Round-Robin → selected ${selected.id} (${selected.url})`);
-    return selected;
-  }
-
-  /**
-   * Main request routing handler
-   * @param {string} url - Client request URL
-   * @returns {{ id: string, host: string, port: number, url: string } | null}
-   */
-  routeRequest(url) {
-    if (!this.validateRequest(url)) {
-      return null;
+    if (this.mode === 'round-robin') {
+      const edge = available[this.currentIndex % available.length];
+      this.currentIndex++;
+      return edge;
     }
-    return this.selectEdge();
-  }
 
-  /** @returns {Array} full list of registered edges */
-  getEdgeList() {
-    return this.edges;
-  }
+    if (this.mode === 'alpha-beta') {
+      const { alpha, beta, epsilon, perturb } = this.options;
 
-  /** @returns {number} current round-robin index */
-  getCurrentIndex() {
-    return this._currentIndex;
+      let a = alpha;
+      let b = beta;
+
+      if (perturb) {
+        a += (Math.random() - 0.5) * 0.1;
+        b += (Math.random() - 0.5) * 0.1;
+      }
+
+      const scoredEdges = available.map(edge => {
+        const metrics = edgeMetrics[edge.id];
+        const lat = metrics.latency || 100;
+        
+        // Predictive Local Tracking: Combine polled load with in-flight requests 
+        // to immediately penalize edges before the next polling tick
+        const effectiveLoad = (metrics.load || 0) + (inFlight[edge.id] || 0);
+        
+        const score = (a * lat) + (b * effectiveLoad * 80); // Using standard weight adjustments
+        return { edge, score };
+      });
+
+      scoredEdges.sort((x, y) => x.score - y.score);
+
+      if (epsilon > 0 && Math.random() < epsilon) {
+        if (scoredEdges.length > 1) {
+          const randomIndex = 1 + Math.floor(Math.random() * (scoredEdges.length - 1));
+          return scoredEdges[randomIndex].edge;
+        }
+      }
+
+      return scoredEdges[0].edge;
+    }
   }
 }
 

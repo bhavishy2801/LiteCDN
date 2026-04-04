@@ -1,180 +1,142 @@
-/**
- * ============================================================
- *  LiteCDN – CDN System / Gateway Router
- * ============================================================
- *  This is the **main entry-point** that clients hit.
- *  It acts as a reverse-proxy: for every incoming request it
- *  uses the RoutingService to pick an Edge Server via
- *  round-robin, then proxies the request to that edge and
- *  streams the response back to the client.
- *
- *  Endpoints
- *  ---------
- *  GET /cdn/*      →  Routed to an Edge Server
- *  GET /health     →  Gateway health-check
- *  GET /status     →  Shows edge list & current RR index
- *
- *  Flow: Client → CDNSystem → EdgeServer → (cache / Origin)
- * ============================================================
- */
-
-const express        = require('express');
-const axios          = require('axios');
-const cors           = require('cors');
-const config         = require('../config');
-const RoutingService = require('./routing');
-const testAPI        = require('./testAPI');
-const { runAllTests  } = require('../../testing/unitTests');
-
-// ── Initialise ───────────────────────────────────────────────
-const app     = express();
-const PORT    = config.cdn.port;
-const router  = new RoutingService();    // uses config.edges by default
-
-// Enable CORS so the frontend (if any) can call the gateway
-app.use(cors({
-  exposedHeaders: ['X-Cache', 'X-Edge-Id', 'X-CDN', 'X-Response-Time'],
-}));
-
-// ── Serve Frontend (Dashboard) ───────────────────────────────
+const express = require('express');
+const axios = require('axios');
+const cors = require('cors');
 const path = require('path');
+const config = require('../config');
+const RoutingService = require('./routing');
+
+const app = express();
+app.use(cors());
 app.use(express.static(path.join(__dirname, '../../frontend')));
 
-// ── Handler Functions ────────────────────────────────────────
+// --- Expose Production UI ---
+app.get('/production', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/production-dashboard.html'));
+});
 
-/**
- * Logs incoming requests for debugging purposes
- */
-function logRequestMiddleware(req, _res, next) {
-  console.log(`\n[CDNSystem] ════════════════════════════════════`);
-  console.log(`[CDNSystem] 📥  Request received: ${req.method} ${req.url}`);
+let isOffline = false;
+
+app.use((req, res, next) => {
+  // Allow admin and config requests even if offline
+  if (isOffline && !req.url.startsWith('/admin') && !req.url.startsWith('/config') && !req.url.startsWith('/status')) {
+    return res.status(503).json({ error: 'CDN gateway is currently offline.' });
+  }
   next();
-}
+});
 
-/**
- * Main CDN request handler
- * Routes requests to edge servers and proxies responses back
- */
-async function handleCDNRequest(req, res) {
-  const startTime = Date.now();
+const PORT = config.cdn.port;
+const GATEWAY_NAME = 'CDNSystem';
 
-  // 1. Determine the origin-style path from the URL
-  const resourcePath = req.params[0];          // e.g. "content/hello.txt"
+const routingService = new RoutingService(config.edges);
+routingService.setMode('alpha-beta', { alpha: 0.7, beta: 0.3, epsilon: 0.1 });
+let edgeMetrics = {};
 
-  // 2. Use RoutingService to pick the next Edge Server
-  const edge = router.selectEdge();
-  console.log(`[CDNSystem] 🔀 Routed to ${edge.id} (${edge.url})`);
-
-  // 3. Build the URL to the Edge Server's /fetch endpoint
-  const edgeURL = `${edge.url}/fetch/${resourcePath}`;
-  console.log(`[CDNSystem] ➡️  Forwarding to: ${edgeURL}`);
-
-  try {
-    // 4. Proxy the request to the Edge Server
-    const edgeResponse = await axios.get(edgeURL, {
-      responseType: 'arraybuffer',
-      validateStatus: (status) => status < 500,
-    });
-
-    // 5. Relay headers back to the client
-    const contentType = edgeResponse.headers['content-type'] || 'application/octet-stream';
-    const cacheStatus = edgeResponse.headers['x-cache'] || 'UNKNOWN';
-    const edgeId      = edgeResponse.headers['x-edge-id'] || edge.id;
-    const elapsed     = Date.now() - startTime;
-
-    res.set('Content-Type', contentType);
-    res.set('X-Cache', cacheStatus);
-    res.set('X-Edge-Id', edgeId);
-    res.set('X-CDN', 'LiteCDN');
-    res.set('X-Response-Time', `${elapsed}ms`);
-
-    console.log(`[CDNSystem] ✅  Response from ${edgeId} | Cache: ${cacheStatus} | Served in ${elapsed}ms`);
-
-    return res.status(edgeResponse.status).send(edgeResponse.data);
-
-  } catch (err) {
-    const elapsed = Date.now() - startTime;
-    console.error(`[CDNSystem] 🚨 Error contacting ${edge.id}:`, err.message, `| ${elapsed}ms`);
-    return res.status(502).json({
-      error: `Bad Gateway – could not reach ${edge.id}`,
-      details: err.message,
-    });
-  }
-}
-
-/**
- * Health check endpoint
- */
-function handleHealthCheck(_req, res) {
-  res.json({ status: 'UP', server: 'CDNSystem', port: PORT });
-}
-
-/**
- * Status endpoint for debugging
- */
-function handleStatusRequest(_req, res) {
-  res.json({
-    server: 'CDNSystem',
-    port: PORT,
-    routingStrategy: 'Round-Robin',
-    currentIndex: router.getCurrentIndex(),
-    edges: router.getEdgeList(),
+// Fetch metrics
+setInterval(async () => {
+  const promises = config.edges.map(async (edge) => {
+    try {
+      const res = await axios.get(`http://${edge.host}:${edge.port}/metrics`);
+      edgeMetrics[edge.id] = { status: 'UP', ...res.data };
+    } catch (err) {
+      edgeMetrics[edge.id] = { status: 'DOWN', latency: 9999, load: 0 };
+    }
   });
-}
-// ── Test API Endpoints ───────────────────────────────────────
-//    Dashboard endpoints to run tests and return JSON results
+  await Promise.all(promises);
+}, 50);
 
-app.get('/api/tests/run-all', async (_req, res) => {
+// Tracking local requests to avoid Stale State metrics
+const inFlightRequests = {};
+config.edges.forEach(e => inFlightRequests[e.id] = 0);
+
+// Dashboard Endpoints
+app.post('/admin/stop', (req, res) => {
+  isOffline = true;
+  console.log(`[CDNSystem] 🛑 CDN is offline`);
+  res.json({ message: 'CDN stopped (offline mode)' });
+});
+
+app.post('/admin/start', (req, res) => {
+  isOffline = false;
+  console.log(`[CDNSystem] 🟢 CDN is online`);
+  res.json({ message: 'CDN started (online mode)' });
+});
+
+app.get('/config', (req, res) => {
+  res.json({
+    routing: routingService.mode,
+    routingOptions: routingService.options,
+    edges: config.edges,
+    origin: config.origin,
+    cdn: config.cdn
+  });
+});
+
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/index.html'));
+});
+
+app.post('/policy/routing', express.json(), (req, res) => {
+  const { mode, ...options } = req.body;
+  if (!['round-robin', 'alpha-beta'].includes(mode)) {
+    return res.status(400).json({ error: 'Unsupported routing mode' });
+  }
+  routingService.setMode(mode, options);
+  res.json({ message: `Routing policy set to ${mode}`, options });
+});
+
+app.post('/policy/cache', express.json(), async (req, res) => {
+  const { mode, size } = req.body;
+  const promises = config.edges.map(async (edge) => {
+    try {
+      await axios.post(`http://${edge.host}:${edge.port}/policy/cache`, { mode, size });
+    } catch (e) {
+      console.log('Failed to update cache on', edge.id);
+    }
+  });
+  await Promise.all(promises);
+  res.json({ message: 'Global cache policy updated', mode, size });
+});
+
+app.get('/cdn/content/:file', async (req, res) => {
+  const targetEdge = routingService.route(req, edgeMetrics, inFlightRequests);
+  if (!targetEdge) {
+    return res.status(503).json({ error: 'No edges available' });
+  }
+  
+  const cost = parseFloat(req.query.cost) || 1;
+
+  // Predictively model that this edge is now processing an additional request
+  inFlightRequests[targetEdge.id] = (inFlightRequests[targetEdge.id] || 0) + cost;
+  
   try {
-    const result = await runAllTests();
-    res.json(result);
-  } catch (err) {
-    console.error('Error running tests:', err);
-    res.status(500).json({ 
-      error: 'Failed to run tests', 
-      message: err.message,
-      summary: { total: 0, passed: 0, failed: 0, passRate: 0 },
-      results: { passed: [], failed: [] }
+    const url = `http://${targetEdge.host}:${targetEdge.port}/${'content/' + req.params.file}?cost=${cost}`;
+    const start = Date.now();
+    const edgeRes = await axios.get(url);
+    const latency = Date.now() - start;
+    
+    // Request finished, remove predictive penalty
+    inFlightRequests[targetEdge.id] = Math.max(0, inFlightRequests[targetEdge.id] - cost);
+    res.set('x-edge-id', targetEdge.id);
+    const isHit = edgeRes.data && edgeRes.data.cacheHit;
+    res.set('x-cache', isHit ? 'HIT' : 'MISS');
+    res.json({
+       edge: targetEdge.id,
+       latency,
+       data: edgeRes.data
     });
+  } catch (err) {
+    inFlightRequests[targetEdge.id] = Math.max(0, inFlightRequests[targetEdge.id] - cost);
+    res.status(500).json({ error: 'Edge fetch failed' });
   }
 });
 
-app.get('/api/tests/load', async (_req, res) => {
-  const gatewayBase = `http://localhost:${PORT}`;
-  const result = await testAPI.runLoadTestAPI(gatewayBase);
-  res.json(result);
-});
-
-app.get('/api/tests/cache', async (_req, res) => {
-  const gatewayBase = `http://localhost:${PORT}`;
-  const result = await testAPI.runCacheTestAPI(gatewayBase);
-  res.json(result);
-});
-
-app.get('/api/tests/routing', async (_req, res) => {
-  const gatewayBase = `http://localhost:${PORT}`;
-  const result = await testAPI.runRoutingTestAPI(gatewayBase);
-  res.json(result);
-});
-
-// ── Route Registrations ───────────────────────────────────────
-
-app.use(logRequestMiddleware);
-app.get('/cdn/*', handleCDNRequest);
-app.get('/health', handleHealthCheck);
-app.get('/status', handleStatusRequest);
-
-// ── Catch-All 404 ────────────────────────────────────────────
-app.use((_req, res) => {
-  res.status(404).json({ error: 'Not found – use /cdn/<path> to fetch content' });
-});
-
-// ── Start Server ─────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log('='.repeat(56));
-  console.log(`  [CDNSystem] ✅  Gateway running on http://localhost:${PORT}`);
-  console.log(`  [CDNSystem] 🔗  Edges: ${router.getEdgeList().map(e => e.id).join(', ')}`);
-  console.log('='.repeat(56));
+    console.log(`[${GATEWAY_NAME}] routing traffic at ${config.cdn.url}`);
 });
-
-module.exports = app;
+app.get('/status', (req, res) => {
+  res.json({
+    status: 'UP',
+    edges: config.edges,
+    metrics: edgeMetrics
+  });
+});
