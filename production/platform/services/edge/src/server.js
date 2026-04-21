@@ -104,6 +104,17 @@ app.post('/v1/admin/cache/purge', (_req, res) => {
   return res.json({ message: 'cache purged', cache: cache.snapshot() });
 });
 
+app.post('/v1/admin/cache/invalidate', (req, res) => {
+  const filename = String(req.body?.filename || '').trim();
+  if (!filename || filename.includes('/')) {
+    return res.status(400).json({ error: 'filename is required and must not contain /' });
+  }
+
+  const key = `/content/${filename}`;
+  const removed = cache.delete(key);
+  return res.json({ message: 'cache invalidation attempted', filename, removed });
+});
+
 app.get('/v1/content/:filename', async (req, res) => {
   if (!isEnabled) {
     return res.status(503).json({ error: 'edge is disabled' });

@@ -135,6 +135,15 @@ class SegmentedCache {
     this.stats.stores += 1;
   }
 
+  delete(key) {
+    this.pruneExpired();
+
+    const removedFresh = this.segments.fresh.delete(key);
+    const removedPopular = this.segments.popular.delete(key);
+    const removedMissAware = this.segments.missAware.delete(key);
+    return removedFresh || removedPopular || removedMissAware;
+  }
+
   clear() {
     this.segments.fresh.clear();
     this.segments.popular.clear();

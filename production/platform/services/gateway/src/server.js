@@ -214,7 +214,33 @@ app.delete('/api/origin/files/:filename', async (req, res) => {
       timeout: REQUEST_TIMEOUT_MS,
       validateStatus: () => true
     });
-    return res.status(response.status).json(response.data);
+
+    const healthyEdges = topology.edges.filter((e) => e.health === 'UP');
+    const invalidations = await Promise.allSettled(
+      healthyEdges.map((edge) =>
+        axios.post(
+          `${edge.url}/v1/admin/cache/invalidate`,
+          { filename },
+          { timeout: REQUEST_TIMEOUT_MS }
+        )
+      )
+    );
+
+    const invalidationSummary = invalidations.map((result, index) => ({
+      edgeId: healthyEdges[index].id,
+      ok: result.status === 'fulfilled',
+      detail: result.status === 'fulfilled' ? result.value.data : result.reason.message
+    }));
+
+    const payload = {
+      ...(response.data && typeof response.data === 'object' ? response.data : { message: 'delete attempted' }),
+      cacheInvalidation: {
+        attemptedOn: healthyEdges.length,
+        summary: invalidationSummary
+      }
+    };
+
+    return res.status(response.status).json(payload);
   } catch (error) {
     return res.status(502).json({ error: 'failed to delete origin file', detail: error.message });
   }

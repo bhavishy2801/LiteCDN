@@ -453,8 +453,12 @@ async function setAllEdgesEnabled(enabled) {
 
 async function init() {
   state.config = await fetch('/config.json').then((r) => r.json());
-  ui.gatewayTarget.textContent = `Gateway: ${state.config.gatewayUrl}`;
-  ui.vercelTarget.textContent = `Vercel control-plane base: ${state.config.vercelControlPlaneUrl}`;
+  if (ui.gatewayTarget) {
+    ui.gatewayTarget.textContent = `Gateway: ${state.config.gatewayUrl}`;
+  }
+  if (ui.vercelTarget) {
+    ui.vercelTarget.textContent = `Vercel control-plane base: ${state.config.vercelControlPlaneUrl}`;
+  }
 
   ui.refreshBtn?.addEventListener('click', async () => {
     try {
