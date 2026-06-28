@@ -1,8 +1,8 @@
-# 🚀 LiteCDN - Educational Content Delivery Network with GUI Dashboard
+# LiteCDN - Educational Content Delivery Network with GUI Dashboard
 
 A lightweight, educational CDN implementation with **built-in web-based GUI dashboard** for monitoring and testing.
 
-## ✨ What's Included
+## What's Included
 
 ### Core CDN System
 - **Origin Server** (Port 4000) - Serves static content
@@ -17,25 +17,25 @@ A lightweight, educational CDN implementation with **built-in web-based GUI dash
 
 ---
 
-## 🎯 Features
+## Features
 
 ### System Features
-✅ **Round-Robin Routing** - Distributes requests evenly  
-✅ **Edge Caching** - Caches content locally  
-✅ **Deterministic Behavior** - Predictable routing for testing  
-✅ **Multi-Origin Support** - Connect edges to origin servers  
+✓ **Round-Robin Routing** - Distributes requests evenly  
+✓ **Edge Caching** - Caches content locally  
+✓ **Deterministic Behavior** - Predictable routing for testing  
+✓ **Multi-Origin Support** - Connect edges to origin servers  
 
 ### Dashboard Features
-✅ **Load Distribution Chart** - Bar chart showing requests per edge  
-✅ **Cache Status Chart** - Doughnut chart for hit/miss ratio  
-✅ **Routing Accuracy Chart** - Verification of round-robin  
-✅ **System Status Panel** - Shows active edges and URLs  
-✅ **Test Metrics** - Real-time performance data  
-✅ **Detailed Results** - Full test logs and data  
+✓ **Load Distribution Chart** - Bar chart showing requests per edge  
+✓ **Cache Status Chart** - Doughnut chart for hit/miss ratio  
+✓ **Routing Accuracy Chart** - Verification of round-robin  
+✓ **System Status Panel** - Shows active edges and URLs  
+✓ **Test Metrics** - Real-time performance data  
+✓ **Detailed Results** - Full test logs and data  
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Node.js ≥ 16
@@ -60,23 +60,23 @@ http://localhost:3000/dashboard.html
 
 ---
 
-## 📊 Using the Dashboard
+## Using the Dashboard
 
-### 1. **Load Test** (📊)
+### 1. **Load Test**
 Tests load balancing across 3 edges
 - Sends ~100 concurrent requests
 - Shows request distribution
 - Displays balance metrics
 - **Expected**: ~33 requests per edge
 
-### 2. **Cache Test** (💾)
+### 2. **Cache Test**
 Verifies caching behavior
 - Tracks cache hits vs misses
 - Shows hit rate percentage
 - First request = MISS, subsequent = HIT
 - **Expected**: >50% hit rate
 
-### 3. **Routing Test** (🔀)
+### 3. **Routing Test**
 Validates round-robin routing
 - Verifies deterministic sequence
 - Checks accuracy percentage
@@ -85,7 +85,7 @@ Validates round-robin routing
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 LiteCDN/
@@ -115,7 +115,7 @@ LiteCDN/
 
 ---
 
-## 🎨 Dashboard UI
+## Dashboard UI
 
 ### Color Scheme
 - **Gradient Background**: Purple (#667eea → #764ba2)
@@ -130,7 +130,7 @@ LiteCDN/
 
 ---
 
-## 📈 Example Outputs
+## Example Outputs
 
 ### Load Test
 ```json
@@ -143,7 +143,7 @@ LiteCDN/
   "summary": {
     "totalRequests": 100,
     "imbalancePercent": 3.45,
-    "status": "Balanced ✅"
+    "status": "Balanced ✓"
   }
 }
 ```
@@ -155,7 +155,7 @@ LiteCDN/
     "hits": 24,
     "misses": 6,
     "hitRate": "80.0%",
-    "status": "Good ✅"
+    "status": "Good ✓"
   }
 }
 ```
@@ -173,7 +173,7 @@ LiteCDN/
 
 ---
 
-## 🔧 API Endpoints
+## API Endpoints
 
 ### Content Delivery
 ```
@@ -192,7 +192,7 @@ GET /dashboard.html         → Dashboard UI
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Manual Testing (without dashboard)
 ```bash
@@ -213,7 +213,7 @@ node testing/testZipf.js
 
 ---
 
-## 📊 What Each Component Does
+## What Each Component Does
 
 ### Origin Server (Port 4000)
 - Stores master copies of content
@@ -234,7 +234,7 @@ node testing/testZipf.js
 
 ---
 
-## 🎯 Dashboard Features in Detail
+## Dashboard Features in Detail
 
 ### System Status Panel
 Shows:
@@ -274,7 +274,7 @@ Displays quick results:
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 Edit `backend/config.js` to change:
 - Gateway port (default: 3000)
@@ -295,7 +295,7 @@ module.exports = {
 
 ---
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### Dashboard won't load
 - Ensure `npm run start:all` is running
@@ -319,7 +319,7 @@ module.exports = {
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 - **GUIDE.md** - Basic setup guide
 - **DASHBOARD_GUIDE.md** - Complete dashboard usage
@@ -328,20 +328,20 @@ module.exports = {
 
 ---
 
-## 🎯 Learning Objectives
+## Learning Objectives
 
 This project demonstrates:
-- ✅ CDN architecture and round-robin routing
-- ✅ Edge caching and hit/miss behavior
-- ✅ Load distribution and balancing
-- ✅ Reverse proxy implementation
-- ✅ REST API design
-- ✅ Real-time web dashboards
-- ✅ Data visualization with charts
+- ✓ CDN architecture and round-robin routing
+- ✓ Edge caching and hit/miss behavior
+- ✓ Load distribution and balancing
+- ✓ Reverse proxy implementation
+- ✓ REST API design
+- ✓ Real-time web dashboards
+- ✓ Data visualization with charts
 
 ---
 
-## 🔒 Security Notes
+## Security Notes
 
 - This is an **educational project** not for production
 - No authentication or authorization
@@ -351,7 +351,7 @@ This project demonstrates:
 
 ---
 
-## 📦 Dependencies
+## Dependencies
 
 ```json
 {
@@ -368,7 +368,7 @@ Frontend uses:
 
 ---
 
-## 🚀 Performance
+## Performance
 
 Typical test results:
 - Load Test: 5-10 seconds (100 requests)
@@ -378,9 +378,9 @@ Typical test results:
 
 ---
 
-## 🎉 Features Showcase
+## Features Showcase
 
-### ✨ What Makes This Cool
+### What Makes This Cool
 
 1. **Beautiful UI** - Modern gradient design with smooth animations
 2. **Real-time Tests** - Run tests directly from browser
@@ -391,7 +391,7 @@ Typical test results:
 
 ---
 
-## 📞 Support
+## Support
 
 For issues or questions:
 1. Check the documentation files
@@ -401,13 +401,13 @@ For issues or questions:
 
 ---
 
-## 📝 License
+## License
 
-MIT
+Licensed under [MIT License](LICENSE)
 
 ---
 
-## 🎓 Educational Value
+## Educational Value
 
 This CDN implementation is perfect for learning:
 - How CDNs distribute content
@@ -418,5 +418,3 @@ This CDN implementation is perfect for learning:
 - Real-time data visualization
 
 Start learning: `npm run start:all` → `http://localhost:3000/dashboard.html`
-
-**Enjoy your LiteCDN journey! 🚀**
